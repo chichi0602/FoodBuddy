@@ -1,7 +1,7 @@
 # Web API 端點目錄
 
 - 文件狀態：維護中
-- 對應階段：Phase 5
+- 對應階段：Phase 6
 - 最後核對日期：2026/10/06
 
 後端 `server/FoodBuddy.Api`，開發時位址 `http://localhost:5122`。JSON 一律 camelCase。沒有登入驗證（個人使用、只在本機執行）。
@@ -83,5 +83,28 @@
 | 200 | 成功（可能 0 筆，看 `message`） |
 | 400 | 需求空白或超過 500 字、座標不正確、沒有地點也沒有 origin、地點找不到 |
 | 502 | Azure OpenAI 或 OpenStreetMap 失敗 |
+
+## POST /api/geo/geocode
+
+用地址或店名找店家座標（OpenStreetMap Nominatim），給編輯頁與地圖頁的「補座標」使用。
+
+請求：`{ "name": "守賀家庭式和風定食料理", "address": "813高雄市左營區孟子路587號", "city": "高雄市", "district": "左營區", "country": "台灣" }`（name 與 address 至少一個）
+
+回應：
+
+```json
+{ "lat": 22.6773313, "lng": 120.3044965, "displayName": "守賀家庭式和風定食料理, 587, 孟子路, …", "matchedBy": "address" }
+```
+
+- 依序嘗試：轉換後的台灣地址（`孟子路 587, 左營區, 高雄市`）→ 原始地址 → 「店名, 行政區, 城市」。
+- 只接受精確到街道以下的結果（Nominatim `place_rank ≥ 26`）。
+- `matchedBy` 為 `name` 時位置可能是同名的別間店，畫面會提醒使用者確認。
+
+| 狀態碼 | 情況 |
+|------|------|
+| 200 | 找到 |
+| 400 | name 與 address 都沒有 |
+| 404 | 找不到，或只找到行政區等粗略位置 |
+| 502 | 地點查詢服務失敗 |
 
 > 返回 [architecture 索引](README.md)

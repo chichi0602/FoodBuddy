@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { App, Button, Card, Checkbox, Col, Form, Input, InputNumber, Rate, Row, Select, Space, Spin, Upload } from 'antd'
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons'
+import { AimOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate, useParams } from 'react-router-dom'
 import { db } from '../db/db'
@@ -9,6 +9,7 @@ import { CUISINES, MEAL_TIMES, PLACE_TYPES, PRICE_META, PRICE_ORDER, STATUS_META
 import type { MealTime, PlaceStatus, PriceRange } from '../types'
 import { compressImage } from '../utils/image'
 import { parseLatLngFromMapsUrl } from '../utils/geo'
+import { geocodePlace } from '../services/geoApi'
 import './PlaceFormPage.css'
 
 interface FormValues {
@@ -68,6 +69,40 @@ export default function PlaceFormPage() {
       setLoading(false)
     })
   }, [id, form, message, navigate])
+
+  const [geocoding, setGeocoding] = useState(false)
+  const findLocation = async () => {
+    const v = form.getFieldsValue(['name', 'address', 'city', 'district', 'country']) as Partial<FormValues>
+    if (!v.address?.trim() && !(v.name?.trim() && (v.city || v.district))) {
+      message.info('請先填地址，或填店名＋城市／地區。')
+      return
+    }
+    setGeocoding(true)
+    try {
+      const hit = await geocodePlace({
+        name: v.name?.trim() ?? '',
+        address: v.address,
+        city: v.city,
+        district: v.district,
+        country: v.country,
+      })
+      if (!hit) {
+        message.warning('地圖資料裡找不到這個地址或店家，可以改貼 Google Maps 網址。')
+        return
+      }
+      form.setFieldsValue({ lat: hit.lat, lng: hit.lng })
+      message.success(
+        hit.matchedBy === 'address'
+          ? `已依地址找到座標：${hit.displayName}`
+          : `已依店名找到座標，請確認是否正確：${hit.displayName}`,
+        6,
+      )
+    } catch (e) {
+      message.error((e as Error).message)
+    } finally {
+      setGeocoding(false)
+    }
+  }
 
   const onMapsUrlBlur = () => {
     const url = form.getFieldValue('googleMapsUrl') as string | undefined
@@ -215,6 +250,12 @@ export default function PlaceFormPage() {
               </Form.Item>
             </Col>
           </Row>
+          <div className="place-form-geocode">
+            <Button icon={<AimOutlined />} loading={geocoding} onClick={findLocation}>
+              用地址找座標
+            </Button>
+            <span className="place-form-hint">用地址（或店名＋地區）在地圖資料中找座標，找到後請確認位置是否正確。</span>
+          </div>
         </Card>
 
         <Card title="圖片與連結" className="place-form-card">

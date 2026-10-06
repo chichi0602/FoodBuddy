@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Alert, App, Button, Empty, Input, Skeleton, Tag } from 'antd'
-import { CloseOutlined, ReloadOutlined, SendOutlined } from '@ant-design/icons'
+import { Alert, App, Button, Empty, Input, Segmented, Skeleton, Tag } from 'antd'
+import { CloseOutlined, CompassOutlined, ReloadOutlined, SendOutlined, UnorderedListOutlined } from '@ant-design/icons'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useSearchParams } from 'react-router-dom'
 import { db } from '../db/db'
@@ -9,10 +9,12 @@ import { MEAL_TIMES, PRICE_META, STATUS_META } from '../constants'
 import { aiApi } from '../services/aiApi'
 import PlaceCard from '../components/PlaceCard'
 import RecommendationCard from '../components/RecommendationCard'
+import FoodMap, { MARKER_META, markerKindOf, type MapMarker, type MarkerKind } from '../components/FoodMap'
+import { PlacePopup, RecommendationPopup } from '../components/MapPopups'
 import type { PlaceStatus, Recommendation, RecommendResult, SearchConditions } from '../types'
 import { findSaved, matchCollection, recommendationToPlace } from '../utils/aiMatch'
 import { buildTasteProfile, toSavedInputs } from '../utils/tasteProfile'
-import { formatDistance, getCurrentPosition, type LatLng } from '../utils/geo'
+import { distanceKm, formatDistance, getCurrentPosition, type LatLng } from '../utils/geo'
 import './AiSearchPage.css'
 
 type Phase = 'idle' | 'parsing' | 'locating' | 'recommending' | 'done' | 'error'
@@ -72,6 +74,7 @@ export default function AiSearchPage() {
   const [mock, setMock] = useState(false)
   const [savingName, setSavingName] = useState<string>()
   const [result, setResult] = useState<RecommendResult>()
+  const [view, setView] = useState<'list' | 'map'>('list')
   const abortRef = useRef<AbortController>(undefined)
   const originRef = useRef<LatLng>(undefined)
 
@@ -95,6 +98,52 @@ export default function AiSearchPage() {
 
   const preferred = recommendations.filter((r) => r.preferenceReason)
   const discovered = recommendations.filter((r) => !r.preferenceReason)
+
+  // 地圖：AI 推薦 ✨＋搜尋範圍內所有有座標的收藏（Agenda 第 13 節：發現附近以前收藏但還沒去的店）
+  const mapMarkers = useMemo<MapMarker[]>(() => {
+    const area = result?.area
+    if (!area || !places) return []
+    const notes = new Map(result.saved.map((p) => [p.placeId, p.reason]))
+    const shown = new Set<string>()
+    const markers: MapMarker[] = []
+    for (const r of recommendations) {
+      // 已加入我的美食的推薦改用收藏的標記，例如加入想去後變成 📌
+      const saved = findSaved(places, r)
+      if (saved) shown.add(saved.id)
+      markers.push({
+        id: r.id,
+        lat: r.lat,
+        lng: r.lng,
+        kind: saved ? markerKindOf(saved.user.statuses) : 'ai',
+        title: r.name,
+        popup: <RecommendationPopup item={r} saved={saved} onSave={() => save(r, 'wantToGo')} />,
+      })
+    }
+    const maxKm = (area.radiusMeters / 1000) * 1.2
+    for (const p of places) {
+      if (shown.has(p.id) || p.lat == null || p.lng == null) continue
+      // 不推薦的店和收藏區一樣不顯示
+      if (p.user.statuses.includes('notRecommended')) continue
+      if (distanceKm({ lat: area.lat, lng: area.lng }, { lat: p.lat, lng: p.lng }) > maxKm) continue
+      markers.push({
+        id: p.id,
+        lat: p.lat,
+        lng: p.lng,
+        kind: markerKindOf(p.user.statuses),
+        title: p.name,
+        popup: <PlacePopup place={p} note={notes.get(p.id)} />,
+      })
+    }
+    return markers
+    // save 每次 render 都是新函式，不放進相依避免地圖標記一直重建
+  }, [result, places, recommendations])
+
+  const mapCounts = useMemo(() => {
+    const c = new Map<MarkerKind, number>()
+    for (const m of mapMarkers) c.set(m.kind, (c.get(m.kind) ?? 0) + 1)
+    return c
+  }, [mapMarkers])
+  const showMap = phase === 'done' && view === 'map' && !!result?.area
   const placesRef = useRef(places)
   placesRef.current = places
 
@@ -294,7 +343,39 @@ export default function AiSearchPage() {
         </section>
       )}
 
-      {conditions && collection.length > 0 && (
+      {phase === 'done' && result?.area && (
+        <div className="ai-view-switch">
+          <Segmented<'list' | 'map'>
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'list', label: '列表', icon: <UnorderedListOutlined /> },
+              { value: 'map', label: '地圖', icon: <CompassOutlined /> },
+            ]}
+          />
+        </div>
+      )}
+
+      {showMap && result?.area && (
+        <section className="ai-section" aria-label="地圖">
+          <p className="ai-area">
+            以「{result.area.label}」為中心 {formatDistance(result.area.radiusMeters / 1000)}內
+          </p>
+          <div className="ai-map-legend">
+            {(['ai', 'favorite', 'wantToGo', 'visited', 'other'] as MarkerKind[])
+              .filter((k) => (mapCounts.get(k) ?? 0) > 0)
+              .map((k) => (
+                <span key={k}>
+                  {MARKER_META[k].icon} {k === 'ai' ? 'AI 推薦新店' : MARKER_META[k].label} {mapCounts.get(k)}
+                </span>
+              ))}
+          </div>
+          <FoodMap markers={mapMarkers} area={result.area} fitKey={`${result.area.lat},${result.area.lng}`} className="ai-map" />
+          <p className="ai-hint">點標記看店家資訊；範圍內你收藏過的店也會一起顯示。</p>
+        </section>
+      )}
+
+      {!showMap && conditions && collection.length > 0 && (
         <section className="ai-section" aria-labelledby="ai-mine-title">
           <h2 id="ai-mine-title" className="ai-section-title">
             我的收藏符合條件 <span className="ai-count">{collection.length}</span>
@@ -322,7 +403,7 @@ export default function AiSearchPage() {
         </section>
       )}
 
-      {(phase === 'locating' || phase === 'recommending' || phase === 'done' || (phase === 'error' && conditions)) && (
+      {!showMap && (phase === 'locating' || phase === 'recommending' || phase === 'done' || (phase === 'error' && conditions)) && (
         <section className="ai-section" aria-labelledby="ai-rec-title">
           <div className="ai-section-head">
             <h2 id="ai-rec-title" className="ai-section-title">

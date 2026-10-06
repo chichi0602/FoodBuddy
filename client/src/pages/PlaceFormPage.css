@@ -63,3 +63,15 @@
   justify-content: flex-end;
   margin-top: 8px;
 }
+
+.place-form-geocode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+
+.place-form-hint {
+  font-size: 12px;
+  color: var(--gray);
+}

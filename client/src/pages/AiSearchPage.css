@@ -249,3 +249,25 @@
   font-size: 13px;
   line-height: 1.6;
 }
+
+.ai-view-switch {
+  display: flex;
+}
+
+.ai-map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 13px;
+  color: var(--charcoal);
+}
+
+.ai-map.food-map {
+  height: 560px;
+}
+
+@media (max-width: 767px) {
+  .ai-map.food-map {
+    height: 70vh;
+  }
+}

@@ -1,0 +1,34 @@
+.map-popup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  max-width: 240px;
+}
+
+.map-popup-name {
+  font-size: 15px;
+  color: var(--teal-deep);
+  font-weight: 400;
+}
+
+.map-popup-meta {
+  font-size: 12px;
+  color: var(--gray);
+}
+
+.map-popup-rate.ant-rate {
+  font-size: 13px;
+}
+
+.map-popup .leaflet-popup-content p,
+.map-popup-note {
+  margin: 2px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--charcoal);
+}
+
+.map-popup-note--pref {
+  color: var(--teal);
+}

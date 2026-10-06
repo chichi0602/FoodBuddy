@@ -21,8 +21,15 @@ public record PlaceCandidate(
     // OSM 料理標籤或店名是否符合使用者想吃的料理
     bool CuisineMatched);
 
+/// <summary>店家地址或名稱轉座標的結果；MatchedBy 為 address 或 name</summary>
+public record GeocodeResult(double Lat, double Lng, string DisplayName, string MatchedBy);
+
 public interface IPlaceSearchService
 {
+    /// <summary>用地址（優先）或「店名＋行政區＋城市」找店家座標；只找到行政區等粗略位置時回傳 null</summary>
+    Task<GeocodeResult?> GeocodePlaceAsync(
+        string name, string? address, string? city, string? district, string? country, CancellationToken ct);
+
     /// <summary>把條件中的地點轉成座標；找不到回傳 null</summary>
     Task<SearchArea?> ResolveAreaAsync(string? country, string? city, string? district, string? landmark, CancellationToken ct);
 

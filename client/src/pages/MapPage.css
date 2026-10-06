@@ -1,0 +1,60 @@
+.map-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.map-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.map-head .page-subtitle {
+  margin-bottom: 0;
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.map-legend-item {
+  font: inherit;
+  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid #d5e3e8;
+  background: #fff;
+  color: var(--gray);
+  cursor: pointer;
+}
+
+.map-legend-item--on {
+  border-color: var(--teal);
+  background: #e3f3f9;
+  color: var(--teal-deep);
+}
+
+/* 地圖吃滿剩下的畫面高度 */
+.map-page-map.food-map {
+  height: calc(100vh - 290px);
+  min-height: 360px;
+}
+
+.map-batch p {
+  margin: 8px 0 0;
+}
+
+.map-batch-note {
+  font-size: 13px;
+  color: var(--charcoal);
+}
+
+@media (max-width: 767px) {
+  .map-page-map.food-map {
+    height: calc(100vh - 340px);
+  }
+}

@@ -61,6 +61,11 @@ export const placeRepository = {
     await db.userPlaces.put({ ...current, statuses, updatedAt: Date.now() })
   },
 
+  /** 補座標；不更新 updatedAt，避免批次補完後「最近更新」排序整個被打亂 */
+  async setLocation(id: string, lat: number, lng: number): Promise<void> {
+    await db.places.update(id, { lat, lng })
+  },
+
   async setRating(id: string, rating: number): Promise<void> {
     const current = (await db.userPlaces.get(id)) ?? emptyUser(id)
     await db.userPlaces.put({ ...current, rating, updatedAt: Date.now() })

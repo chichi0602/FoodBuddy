@@ -1,7 +1,7 @@
 # 文件目錄索引
 
 - 文件狀態：維護中
-- 對應階段：Phase 5
+- 對應階段：Phase 6
 - 最後核對日期：2026/10/06
 
 本目錄收錄 FoodBuddy（AI 美食紀錄與探索系統）的需求、開發紀錄、功能說明、架構與操作文件。
@@ -27,6 +27,7 @@
 - [開發路線圖](planning/開發路線圖.md)（Phase 0～8 進度與對應紀錄）
 
 ### changelog — 開發紀錄
+- [Phase 6：地圖呈現](changelog/2026-10-06-Phase6-地圖呈現.md)
 - [Phase 5：AI 搜尋同時參考個人收藏](changelog/2026-10-06-Phase5-AI參考個人收藏.md)
 - [Phase 4：串接 OpenStreetMap 真實店家](changelog/2026-10-06-Phase4-串接OpenStreetMap.md)
 - [Phase 3：AI 自然語言搜尋](changelog/2026-10-06-Phase3-AI自然語言搜尋.md)
@@ -40,6 +41,7 @@
 - [我的美食](prd/我的美食-prd.md)
 - [美食分類與篩選](prd/美食分類與篩選-prd.md)
 - [AI 找美食](prd/AI找美食-prd.md)
+- [地圖](prd/地圖-prd.md)
 
 ### architecture — 架構與設計
 - [架構總覽](architecture/架構總覽.md)
@@ -56,7 +58,7 @@
 
 ## 維護規則
 
-- **每完成一個 Phase**：新增一篇 `changelog/`、更新相關 `prd/`、更新 [開發路線圖](planning/開發路線圖.md) 的狀態與 commit，必要時更新 `architecture/` 與 `guides/`。
+- **每完成一個步驟（Phase 或任何小修正）**：新增一篇 `changelog/`、更新相關 `prd/`、更新 [開發路線圖](planning/開發路線圖.md) 的狀態與 commit，必要時更新 `architecture/` 與 `guides/`。
 - `prd/` 只寫**已實作**的現況；還沒做的放在各 PRD 的「規劃中」區塊，不可混在現況描述裡。
 - `changelog/` 記錄當時的決定與原因，事後不改寫歷史；能力現況以 `prd/` 為準。
 - 每篇開頭保留「文件狀態／對應階段／最後核對日期」三行，修改內容時一併更新日期。

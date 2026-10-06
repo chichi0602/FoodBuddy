@@ -6,6 +6,7 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/zh-tw'
 import { BrowserRouter } from 'react-router-dom'
 import { theme } from './theme/theme'
+import 'leaflet/dist/leaflet.css'
 import './index.css'
 import App from './App.tsx'
 

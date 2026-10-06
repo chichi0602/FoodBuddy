@@ -57,16 +57,44 @@ public partial class OsmPlaceSearchService(
 
         foreach (var (query, label, radius) in attempts)
         {
-            var point = await GeocodeAsync(query, inTaiwan ? "tw" : null, ct);
-            if (point is not null) return new SearchArea(point.Lat, point.Lng, label, radius);
+            var hit = await NominatimSearchAsync(query, inTaiwan ? "tw" : null, ct);
+            if (hit is not null) return new SearchArea(hit.Lat, hit.Lng, label, radius);
         }
         return null;
     }
 
-    async Task<GeoPoint?> GeocodeAsync(string query, string? countryCode, CancellationToken ct)
+    /// <summary>Nominatim 的 place_rank：26 以上代表精確到街道、門牌或店家，以下只是行政區或城市</summary>
+    const int MinPlaceRankForShop = 26;
+
+    public async Task<GeocodeResult?> GeocodePlaceAsync(
+        string name, string? address, string? city, string? district, string? country, CancellationToken ct)
+    {
+        var countryCode = country is null or "" or "台灣" or "臺灣" or "Taiwan" ? "tw" : null;
+        var attempts = new List<(string Query, string MatchedBy)>();
+        if (!string.IsNullOrWhiteSpace(address))
+        {
+            if (TaiwanAddress.ToNominatimQuery(address!) is { } normalized) attempts.Add((normalized, "address"));
+            attempts.Add((address!, "address"));
+        }
+        if (!string.IsNullOrWhiteSpace(name))
+            attempts.Add((string.Join(", ", new[] { name, district, city }.Where(s => !string.IsNullOrWhiteSpace(s))), "name"));
+
+        foreach (var (query, matchedBy) in attempts)
+        {
+            var hit = await NominatimSearchAsync(query, countryCode, ct);
+            // 只找到行政區中心不算數，否則店會被釘在區公所之類的位置
+            if (hit is not null && hit.PlaceRank >= MinPlaceRankForShop)
+                return new GeocodeResult(hit.Lat, hit.Lng, hit.DisplayName, matchedBy);
+        }
+        return null;
+    }
+
+    record NominatimHit(double Lat, double Lng, int PlaceRank, string DisplayName);
+
+    async Task<NominatimHit?> NominatimSearchAsync(string query, string? countryCode, CancellationToken ct)
     {
         var key = $"geo:{countryCode}:{query}";
-        if (cache.TryGetValue(key, out GeoPoint? cached)) return cached;
+        if (cache.TryGetValue(key, out NominatimHit? cached)) return cached;
 
         var url = $"{_opt.NominatimUrl.TrimEnd('/')}/search?format=jsonv2&limit=1&accept-language=zh-TW&q={Uri.EscapeDataString(query)}"
                   + (countryCode is null ? "" : $"&countrycodes={countryCode}");
@@ -88,14 +116,18 @@ public partial class OsmPlaceSearchService(
                 throw new PlaceSearchException("地點查詢服務暫時無法使用，請稍後再試。");
             }
             using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(ct));
-            GeoPoint? point = null;
+            NominatimHit? hit = null;
             if (doc.RootElement.GetArrayLength() > 0)
             {
                 var first = doc.RootElement[0];
-                point = new GeoPoint(ParseDouble(first.GetProperty("lat")), ParseDouble(first.GetProperty("lon")));
+                hit = new NominatimHit(
+                    ParseDouble(first.GetProperty("lat")),
+                    ParseDouble(first.GetProperty("lon")),
+                    first.TryGetProperty("place_rank", out var rank) ? rank.GetInt32() : 0,
+                    first.TryGetProperty("display_name", out var dn) ? dn.GetString() ?? query : query);
             }
-            cache.Set(key, point, TimeSpan.FromHours(24));
-            return point;
+            cache.Set(key, hit, TimeSpan.FromHours(24));
+            return hit;
         }
         catch (HttpRequestException ex)
         {
