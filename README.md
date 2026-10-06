@@ -1,9 +1,13 @@
 # FoodBuddy 美食夥伴
 
-個人美食收藏 + AI 美食探索。需求文件見 [docs/food-ai-system.md](docs/food-ai-system.md)。
+個人美食收藏 + AI 美食探索。
+
+- 需求文件：[docs/planning/AI美食紀錄與探索系統-需求Agenda.md](docs/planning/AI美食紀錄與探索系統-需求Agenda.md)
+- 所有文件（開發紀錄、功能說明、架構、操作）：[docs/README.md](docs/README.md)
+- 使用說明：[docs/guides/系統使用說明.md](docs/guides/系統使用說明.md)
 
 - `client/`：React + Vite + TypeScript + Ant Design，資料存在瀏覽器 IndexedDB
-- `server/FoodBuddy.Api/`：ASP.NET Core Web API（.NET 8），代理 Azure OpenAI
+- `server/FoodBuddy.Api/`：ASP.NET Core Web API（.NET 8），代理 Azure OpenAI 並查詢 OpenStreetMap 店家
 
 ## 啟動
 
