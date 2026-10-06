@@ -18,6 +18,8 @@ export interface Place {
   lat?: number
   lng?: number
   cuisines: string[]
+  /** 適合的用餐時段 */
+  mealTimes: MealTime[]
   placeType?: string
   priceRange?: PriceRange
   openingHours?: string

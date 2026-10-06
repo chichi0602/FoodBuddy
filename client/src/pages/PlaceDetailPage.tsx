@@ -3,7 +3,7 @@ import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined } 
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { placeRepository } from '../db/placeRepository'
-import { PRICE_META } from '../constants'
+import { MEAL_TIMES, PRICE_META } from '../constants'
 import StatusToggles from '../components/StatusToggles'
 import './PlaceDetailPage.css'
 
@@ -120,6 +120,9 @@ export default function PlaceDetailPage() {
           <Descriptions column={1} size="small">
             <Descriptions.Item label="地址">{place.address || '—'}</Descriptions.Item>
             <Descriptions.Item label="食物類型">{place.cuisines.join('、') || '—'}</Descriptions.Item>
+            <Descriptions.Item label="適合時段">
+              {place.mealTimes?.map((m) => MEAL_TIMES[m]).join('、') || '—'}
+            </Descriptions.Item>
             <Descriptions.Item label="價格">{place.priceRange ? PRICE_META[place.priceRange].label : '—'}</Descriptions.Item>
             <Descriptions.Item label="營業時間">{place.openingHours || '—'}</Descriptions.Item>
             <Descriptions.Item label="電話">

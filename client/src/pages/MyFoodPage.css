@@ -5,21 +5,57 @@
   gap: 16px;
 }
 
-.myfood-toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 20px;
-  align-items: center;
-}
-
-.myfood-toolbar .ant-segmented {
+.myfood-tabs {
+  margin-bottom: 12px;
   max-width: 100%;
   overflow-x: auto;
 }
 
+.myfood-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
 .myfood-search {
-  max-width: 320px;
+  flex: 1;
+  max-width: 360px;
+}
+
+.myfood-sort {
+  width: 150px;
+}
+
+.myfood-panel {
+  margin-top: 12px;
+  padding: 4px 20px;
+  background: #fff;
+  border: 1px solid #e4eef1;
+  border-radius: 20px;
+}
+
+.myfood-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 16px;
+}
+
+.myfood-count {
+  color: var(--gray);
+  font-size: 13px;
+  margin-right: 6px;
+}
+
+.myfood-chip.ant-tag {
+  margin: 0;
+  border-radius: 999px;
+  padding: 0 10px;
+  background: #e3f3f9;
+  border-color: var(--sky-light);
+  color: var(--teal-deep);
 }
 
 .myfood-grid {
@@ -28,9 +64,24 @@
   gap: 16px;
 }
 
+.myfood-drawer-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.myfood-drawer-foot .ant-btn-primary {
+  flex: 1;
+}
+
 @media (max-width: 767px) {
   .myfood-search {
     max-width: none;
+    flex-basis: 100%;
+  }
+
+  .myfood-sort {
+    flex: 1;
   }
 
   .myfood-grid {

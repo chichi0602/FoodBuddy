@@ -1,0 +1,87 @@
+.filter-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: 88px 1fr;
+  align-items: start;
+  gap: 8px 16px;
+  padding: 12px 0;
+}
+
+.filter-row + .filter-row {
+  border-top: 1px dashed #e4eef1;
+}
+
+.filter-label {
+  margin: 0;
+  padding-top: 3px;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--teal-deep);
+}
+
+.filter-geo {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+/* 可勾選標籤做成圓潤的膠囊狀 */
+.filter-chips .ant-tag-checkable {
+  margin: 0;
+  padding: 2px 12px;
+  border-radius: 999px;
+  border: 1px solid #d5e3e8;
+  background: #fff;
+  font-size: 13px;
+  line-height: 22px;
+}
+
+.filter-chips .ant-tag-checkable:not(.ant-tag-checkable-checked):hover {
+  color: var(--teal);
+  border-color: var(--sky);
+}
+
+.filter-chips .ant-tag-checkable.ant-tag-checkable-checked {
+  background: var(--teal);
+  border-color: var(--teal);
+  color: #fff;
+}
+
+.filter-budget {
+  width: 150px;
+}
+
+.filter-hint {
+  font-size: 12px;
+  color: var(--gray);
+}
+
+.filter-alert {
+  grid-column: 2;
+}
+
+@media (max-width: 767px) {
+  .filter-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .filter-geo {
+    grid-template-columns: 1fr;
+  }
+
+  .filter-alert {
+    grid-column: 1;
+  }
+}

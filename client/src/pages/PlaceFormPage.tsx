@@ -5,8 +5,8 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { useNavigate, useParams } from 'react-router-dom'
 import { db } from '../db/db'
 import { placeRepository, type PlaceInput } from '../db/placeRepository'
-import { CUISINES, PLACE_TYPES, PRICE_META, PRICE_ORDER, STATUS_META, STATUS_ORDER } from '../constants'
-import type { PlaceStatus, PriceRange } from '../types'
+import { CUISINES, MEAL_TIMES, PLACE_TYPES, PRICE_META, PRICE_ORDER, STATUS_META, STATUS_ORDER } from '../constants'
+import type { MealTime, PlaceStatus, PriceRange } from '../types'
 import { compressImage } from '../utils/image'
 import { parseLatLngFromMapsUrl } from '../utils/geo'
 import './PlaceFormPage.css'
@@ -21,6 +21,7 @@ interface FormValues {
   lat?: number
   lng?: number
   cuisines: string[]
+  mealTimes: MealTime[]
   placeType?: string
   priceRange?: PriceRange
   openingHours?: string
@@ -36,6 +37,7 @@ interface FormValues {
 const DEFAULTS: Partial<FormValues> = {
   country: '台灣',
   cuisines: [],
+  mealTimes: [],
   recommendedDishes: [],
   links: [],
   tags: [],
@@ -89,6 +91,7 @@ export default function PlaceFormPage() {
       lat: v.lat ?? undefined,
       lng: v.lng ?? undefined,
       cuisines: v.cuisines ?? [],
+      mealTimes: v.mealTimes ?? [],
       placeType: v.placeType,
       priceRange: v.priceRange,
       openingHours: v.openingHours,
@@ -136,6 +139,13 @@ export default function PlaceFormPage() {
             <Col xs={24} md={12}>
               <Form.Item name="placeType" label="店家類型">
                 <Select allowClear placeholder="例如：餐廳" options={PLACE_TYPES.map((t) => ({ value: t }))} />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item name="mealTimes" label="適合時段（可複選）">
+                <Checkbox.Group
+                  options={(Object.keys(MEAL_TIMES) as MealTime[]).map((m) => ({ value: m, label: MEAL_TIMES[m] }))}
+                />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>

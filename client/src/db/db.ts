@@ -16,3 +16,17 @@ db.version(1).stores({
   tags: 'name',
   searchHistory: 'id, createdAt',
 })
+
+// v2：新增「適合時段」
+db.version(2)
+  .stores({
+    places: 'id, name, city, district, priceRange, *cuisines, *mealTimes, *tags, updatedAt',
+  })
+  .upgrade((tx) =>
+    tx
+      .table('places')
+      .toCollection()
+      .modify((p: Partial<Place>) => {
+        p.mealTimes ??= []
+      }),
+  )

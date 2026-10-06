@@ -81,3 +81,7 @@
 .place-card-foot .ant-rate {
   font-size: 16px;
 }
+
+.place-card-distance {
+  color: var(--teal);
+}

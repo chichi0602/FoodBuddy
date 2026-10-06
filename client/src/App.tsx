@@ -5,6 +5,7 @@ import MyFoodPage from './pages/MyFoodPage'
 import PlaceFormPage from './pages/PlaceFormPage'
 import PlaceDetailPage from './pages/PlaceDetailPage'
 import ComingSoonPage from './pages/ComingSoonPage'
+import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
   return (
@@ -18,7 +19,7 @@ export default function App() {
         <Route path="ai" element={<ComingSoonPage title="AI 找美食" phase="Phase 3" />} />
         <Route path="map" element={<ComingSoonPage title="地圖" phase="Phase 6" />} />
         <Route path="visits" element={<ComingSoonPage title="到訪紀錄" phase="Phase 7" />} />
-        <Route path="settings" element={<ComingSoonPage title="設定" phase="後續階段" />} />
+        <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<ComingSoonPage title="找不到這個頁面" />} />
       </Route>
     </Routes>
