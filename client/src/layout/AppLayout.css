@@ -1,0 +1,86 @@
+.app-shell {
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  height: 56px;
+  line-height: 56px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.app-brand {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 25px;
+  color: #fff;
+  letter-spacing: 0.02em;
+}
+
+.app-brand:hover {
+  color: var(--sky-light);
+}
+
+.app-brand-sub {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--sky-light);
+  margin-left: 10px;
+}
+
+.app-sider {
+  border-right: 1px solid #e4eef1;
+  padding-top: 12px;
+}
+
+.app-sider .ant-menu {
+  border-inline-end: none !important;
+}
+
+.app-content {
+  padding: 28px 32px 48px;
+  max-width: 1200px;
+  width: 100%;
+}
+
+.app-content--mobile {
+  padding: 16px 16px 88px;
+}
+
+.app-tabbar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  display: flex;
+  background: #fff;
+  border-top: 1px solid #e4eef1;
+  z-index: 1000;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.app-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--gray);
+}
+
+.app-tab-icon {
+  font-size: 20px;
+}
+
+.app-tab--active {
+  color: var(--teal);
+  font-weight: 400;
+}

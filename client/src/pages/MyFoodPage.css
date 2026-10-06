@@ -1,0 +1,39 @@
+.myfood-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.myfood-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 20px;
+  align-items: center;
+}
+
+.myfood-toolbar .ant-segmented {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.myfood-search {
+  max-width: 320px;
+}
+
+.myfood-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 767px) {
+  .myfood-search {
+    max-width: none;
+  }
+
+  .myfood-grid {
+    grid-template-columns: 1fr;
+  }
+}

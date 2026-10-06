@@ -1,0 +1,82 @@
+.place-detail-back.ant-btn {
+  padding-left: 0;
+  margin-bottom: 8px;
+}
+
+.place-detail-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.place-detail-gallery {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.place-detail-gallery .ant-image-img {
+  object-fit: cover;
+  border-radius: 12px;
+}
+
+.place-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.place-detail-card .ant-card-head-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--teal-deep);
+}
+
+/* 「我的紀錄」是這頁最重要的區塊，用淡天藍底區分 */
+.place-detail-card--mine {
+  grid-column: 1 / -1;
+  background: #eef8fb;
+  border-color: var(--sky-light);
+}
+
+.place-detail-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 8px 0;
+}
+
+.place-detail-label {
+  flex: 0 0 72px;
+  color: var(--gray);
+  padding-top: 4px;
+}
+
+.place-detail-note {
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+}
+
+.place-detail-links {
+  padding-left: 18px;
+  margin: 8px 0 0;
+  word-break: break-all;
+}
+
+@media (max-width: 767px) {
+  .place-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .place-detail-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .place-detail-label {
+    flex-basis: auto;
+  }
+}

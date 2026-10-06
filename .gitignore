@@ -1,0 +1,17 @@
+# Node / client
+node_modules/
+client/dist/
+
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# 本機金鑰設定（Azure OpenAI 等），不進版控
+server/FoodBuddy.Api/appsettings.Development.json
+server/FoodBuddy.Api/appsettings.Local.json
+
+# OS / editor
+.DS_Store
+Thumbs.db

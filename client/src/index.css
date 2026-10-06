@@ -1,0 +1,53 @@
+:root {
+  --sky-light: #a6daec;
+  --sky: #82bfd3;
+  --teal: #386e80;
+  --teal-deep: #244a57;
+  --charcoal: #636166;
+  --gray: #8d8d8f;
+  --mist: #f3f8fa;
+  --font-sans: 'Huninn', 'jf-openhuninn', 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+  --font-display: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  background: var(--mist);
+  color: var(--charcoal);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  /* 避免瀏覽器把圓體硬加粗而變得模糊 */
+  font-synthesis-weight: none;
+}
+
+/* Huninn（粉圓）只有一種字重，標題靠字級與顏色建立層次 */
+.page-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  color: var(--teal-deep);
+  font-size: 30px;
+  line-height: 1.3;
+  margin: 0 0 4px;
+}
+
+.page-subtitle {
+  color: var(--gray);
+  margin: 0 0 24px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
