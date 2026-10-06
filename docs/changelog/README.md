@@ -9,7 +9,7 @@
 
 | 變更（新到舊） | 文件 | Commit |
 |------|------|------|
-| Phase 6：地圖頁、AI 結果地圖、用地址找座標 | [Phase6-地圖呈現](2026-10-06-Phase6-地圖呈現.md) | 待 commit |
+| Phase 6：地圖頁、AI 結果地圖、用地址找座標 | [Phase6-地圖呈現](2026-10-06-Phase6-地圖呈現.md) | `bce5bfc` |
 | Phase 5：AI 推薦同時參考收藏與口味，結果分成三區 | [Phase5-AI參考個人收藏](2026-10-06-Phase5-AI參考個人收藏.md) | `cab5e16` |
 | Phase 4：改用 OpenStreetMap 真實店家，AI 只能從中挑選 | [Phase4-串接OpenStreetMap](2026-10-06-Phase4-串接OpenStreetMap.md) | `33129f7` |
 | Phase 3：AI 解析自然語言需求並推薦店家 | [Phase3-AI自然語言搜尋](2026-10-06-Phase3-AI自然語言搜尋.md) | `ba1245f` |
