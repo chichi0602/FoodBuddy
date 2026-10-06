@@ -1,7 +1,7 @@
 # Web API 端點目錄
 
 - 文件狀態：維護中
-- 對應階段：Phase 6
+- 對應階段：Phase 7
 - 最後核對日期：2026/10/06
 
 後端 `server/FoodBuddy.Api`，開發時位址 `http://localhost:5122`。JSON 一律 camelCase。沒有登入驗證（個人使用、只在本機執行）。
@@ -49,7 +49,7 @@
 | conditions | ✅ | `/parse` 的結果（可由使用者移除部分條件） |
 | excludeNames | | 要排除的店名（「換一批」用） |
 | origin | | `{ lat, lng }`，條件沒有地點時的搜尋中心 |
-| profile | | 口味摘要：topCuisines[{name,count}]、preferredPriceRanges、highRated、dislikedCuisines、dislikedNames、totalSaved |
+| profile | | 口味摘要：topCuisines[{name,count}]、preferredPriceRanges、highRated、dislikedCuisines、dislikedNames、topDistricts、visitCount、totalSaved |
 | savedPlaces | | 收藏清單：id、name、lat、lng、city、district、cuisines、statuses、rating、priceRange |
 
 回應：
@@ -83,6 +83,27 @@
 | 200 | 成功（可能 0 筆，看 `message`） |
 | 400 | 需求空白或超過 500 字、座標不正確、沒有地點也沒有 origin、地點找不到 |
 | 502 | Azure OpenAI 或 OpenStreetMap 失敗 |
+
+## POST /api/ai/taste-insight
+
+依收藏與到訪紀錄寫一段口味觀察（Phase 7）。
+
+請求：
+
+| 欄位 | 說明 |
+|------|------|
+| profile | 口味摘要（可為 null，例如喜歡的店少於 3 間） |
+| stats | `{ totalSaved, visitedPlaces, visitCount, averageRating }` |
+| visits | 到訪清單：placeName、cuisines、area、visitedAt、rating、wouldRevisit、dishes（伺服器只取前 100 筆）；**不含心得、同行人、金額、照片** |
+| notRecommended | 標為不推薦的店名；AI 不會建議再去這些店 |
+
+回應：`{ "insight": { "summary": "…", "highlights": ["…"], "suggestions": ["…"] }, "mock": false }`
+
+| 狀態碼 | 情況 |
+|------|------|
+| 200 | 成功 |
+| 400 | 沒有任何收藏（totalSaved 為 0） |
+| 502 | AI 服務失敗 |
 
 ## POST /api/geo/geocode
 

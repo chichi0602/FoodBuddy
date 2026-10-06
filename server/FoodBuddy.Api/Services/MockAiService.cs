@@ -35,6 +35,22 @@ public partial class MockAiService : IAiService
         ["一"] = 1, ["兩"] = 2, ["二"] = 2, ["三"] = 3, ["四"] = 4, ["五"] = 5, ["六"] = 6, ["七"] = 7, ["八"] = 8, ["九"] = 9, ["十"] = 10,
     };
 
+    public async Task<TasteInsight> AnalyzeTasteAsync(TasteInsightRequest request, CancellationToken ct)
+    {
+        await Task.Delay(500, ct);
+        var top = request.Profile?.TopCuisines.Select(c => c.Name).ToList() ?? [];
+        var s = request.Stats;
+        var highlights = new List<string> { $"（示範）收藏 {s.TotalSaved} 間，去過 {s.VisitedPlaces} 間，共到訪 {s.VisitCount} 次" };
+        if (top.Count > 0) highlights.Add($"（示範）最常出現的料理：{string.Join("、", top.Take(3))}");
+        if (s.AverageRating is { } avg) highlights.Add($"（示範）到訪平均評分 {avg:0.0} 星");
+        return new TasteInsight(
+            Summary: top.Count > 0
+                ? $"（示範分析）你偏愛{top[0]}，設定 Azure OpenAI 金鑰後會由 AI 寫出更完整的觀察。"
+                : "（示範分析）收藏與到訪紀錄還不多，多記錄幾間店後就能看出你的口味。",
+            Highlights: highlights,
+            Suggestions: ["（示範）把想再訪清單裡的店排進下一次聚餐", "（示範）試試還沒吃過的料理類型"]);
+    }
+
     public async Task<SearchConditions> ParseAsync(string query, CancellationToken ct)
     {
         await Task.Delay(500, ct);

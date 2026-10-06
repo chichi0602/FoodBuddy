@@ -65,7 +65,9 @@ public record TasteProfile(
     IReadOnlyList<string> HighRated,
     IReadOnlyList<string> DislikedCuisines,
     IReadOnlyList<string> DislikedNames,
-    int TotalSaved);
+    int TotalSaved,
+    IReadOnlyList<string>? TopDistricts = null,
+    int VisitCount = 0);
 
 public record CuisineCount(string Name, int Count);
 
@@ -104,6 +106,30 @@ public record RecommendResponse(
     SearchArea? Area,
     int CandidateCount,
     string? Message);
+
+/// <summary>AI 口味分析的輸入：只含店名、料理、地區、評分等，不含心得與備註</summary>
+public record TasteInsightRequest(
+    TasteProfile? Profile,
+    TasteStats Stats,
+    IReadOnlyList<VisitSummary> Visits,
+    // 使用者標為不推薦的店名；口味摘要在收藏太少時不會送，所以獨立帶上
+    IReadOnlyList<string>? NotRecommended = null);
+
+public record TasteStats(int TotalSaved, int VisitedPlaces, int VisitCount, double? AverageRating);
+
+public record VisitSummary(
+    string PlaceName,
+    IReadOnlyList<string> Cuisines,
+    string? Area,
+    string VisitedAt,
+    double? Rating,
+    bool? WouldRevisit,
+    IReadOnlyList<string> Dishes);
+
+/// <summary>AI 對使用者口味的觀察</summary>
+public record TasteInsight(string Summary, IReadOnlyList<string> Highlights, IReadOnlyList<string> Suggestions);
+
+public record TasteInsightResponse(TasteInsight Insight, bool Mock);
 
 public record ApiError(string Message);
 

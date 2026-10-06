@@ -1,4 +1,4 @@
-import type { RecommendResult, SavedPlaceInput, SearchConditions, TasteProfile } from '../types'
+import type { RecommendResult, SavedPlaceInput, SearchConditions, TasteInsight, TasteProfile } from '../types'
 import type { LatLng } from '../utils/geo'
 
 export class AiApiError extends Error {}
@@ -43,4 +43,20 @@ export const aiApi = {
     personal: { profile: TasteProfile | null; savedPlaces: SavedPlaceInput[] },
     signal?: AbortSignal,
   ) => post<RecommendResult>('recommend', { query, conditions, excludeNames, origin, ...personal }, signal),
+
+  /** 口味分析；visits 只含店名、料理、地區、評分等，不含心得與備註 */
+  tasteInsight: (body: {
+    profile: TasteProfile | null
+    stats: { totalSaved: number; visitedPlaces: number; visitCount: number; averageRating: number | null }
+    visits: {
+      placeName: string
+      cuisines: string[]
+      area: string | null
+      visitedAt: string
+      rating: number | null
+      wouldRevisit: boolean | null
+      dishes: string[]
+    }[]
+    notRecommended: string[]
+  }) => post<{ insight: TasteInsight; mock: boolean }>('taste-insight', body),
 }

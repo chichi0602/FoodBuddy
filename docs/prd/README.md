@@ -1,7 +1,7 @@
 # prd — 產品能力現況
 
 - 文件狀態：維護中
-- 對應階段：Phase 6
+- 對應階段：Phase 7
 - 最後核對日期：2026/10/06
 
 本目錄以「產品能力」為單位描述**目前程式實際的樣子**。「規劃中」一律獨立分區，不代表系統已提供。
@@ -16,6 +16,6 @@
 | 美食分類與篩選（含 Tag 管理） | [美食分類與篩選](美食分類與篩選-prd.md) | `/my`、`/settings` | `FilterPanel.tsx`、`filterPlaces.ts`、`SettingsPage.tsx`、`tagRepository.ts` | 已實作 |
 | AI 找美食 | [AI 找美食](AI找美食-prd.md) | `/ai` | `AiSearchPage.tsx`、`AiController`、`RecommendationService`、`OsmPlaceSearchService`、`AzureOpenAiService` | 已實作 |
 | 地圖 | [地圖](地圖-prd.md) | `/map`、`/ai`（地圖模式） | `MapPage.tsx`、`FoodMap.tsx`、`MapPopups.tsx`、`GeoController` | 已實作 |
-| 到訪紀錄 | — | `/visits` | `ComingSoonPage.tsx`（佔位） | 規劃中（Phase 7） |
+| 到訪與統計 | [到訪與統計](到訪與統計-prd.md) | `/visits`、`/visits?tab=stats`、店家詳細頁 | `VisitsPage.tsx`、`VisitFormModal.tsx`、`VisitCard.tsx`、`visitRepository.ts`、`foodStats.ts` | 已實作 |
 
 > 返回 [文件總索引](../README.md)

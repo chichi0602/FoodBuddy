@@ -154,6 +154,10 @@ export interface TasteProfile {
   highRated: string[]
   dislikedCuisines: string[]
   dislikedNames: string[]
+  /** 最常去的地區（城市＋行政區） */
+  topDistricts: string[]
+  /** 到訪紀錄總數 */
+  visitCount: number
   totalSaved: number
 }
 
@@ -175,4 +179,11 @@ export interface SavedPick {
   placeId: string
   reason: string
   matchScore: number
+}
+
+/** AI 口味分析結果（對應後端 TasteInsight） */
+export interface TasteInsight {
+  summary: string
+  highlights: string[]
+  suggestions: string[]
 }

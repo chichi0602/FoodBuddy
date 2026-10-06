@@ -1,7 +1,7 @@
 # 文件目錄索引
 
 - 文件狀態：維護中
-- 對應階段：Phase 6
+- 對應階段：Phase 7
 - 最後核對日期：2026/10/06
 
 本目錄收錄 FoodBuddy（AI 美食紀錄與探索系統）的需求、開發紀錄、功能說明、架構與操作文件。
@@ -27,6 +27,7 @@
 - [開發路線圖](planning/開發路線圖.md)（Phase 0～8 進度與對應紀錄）
 
 ### changelog — 開發紀錄
+- [Phase 7：到訪、評分與個人偏好](changelog/2026-10-06-Phase7-到訪與口味統計.md)
 - [Phase 6：地圖呈現](changelog/2026-10-06-Phase6-地圖呈現.md)
 - [Phase 5：AI 搜尋同時參考個人收藏](changelog/2026-10-06-Phase5-AI參考個人收藏.md)
 - [Phase 4：串接 OpenStreetMap 真實店家](changelog/2026-10-06-Phase4-串接OpenStreetMap.md)
@@ -42,6 +43,7 @@
 - [美食分類與篩選](prd/美食分類與篩選-prd.md)
 - [AI 找美食](prd/AI找美食-prd.md)
 - [地圖](prd/地圖-prd.md)
+- [到訪與統計](prd/到訪與統計-prd.md)
 
 ### architecture — 架構與設計
 - [架構總覽](architecture/架構總覽.md)

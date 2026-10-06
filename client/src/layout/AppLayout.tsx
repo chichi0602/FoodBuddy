@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Grid, Layout, Menu } from 'antd'
 import {
   CalendarOutlined,
@@ -12,13 +13,23 @@ import './AppLayout.css'
 
 const { Header, Sider, Content } = Layout
 
-const NAV = [
+interface NavItem {
+  key: string
+  icon: ReactNode
+  label: string
+  /** 手機底部分頁列的短標籤 */
+  mobileLabel?: string
+  mobile: boolean
+}
+
+const NAV: NavItem[] = [
   { key: '/', icon: <HomeOutlined />, label: '首頁', mobile: true },
   { key: '/ai', icon: <StarOutlined />, label: 'AI 找美食', mobile: true },
   { key: '/my', icon: <HeartOutlined />, label: '我的美食', mobile: true },
   { key: '/map', icon: <CompassOutlined />, label: '地圖', mobile: true },
-  { key: '/visits', icon: <CalendarOutlined />, label: '到訪紀錄', mobile: false },
-  { key: '/settings', icon: <SettingOutlined />, label: '設定', mobile: true },
+  // 手機的「到訪」用短標籤；設定改由標題列右側齒輪進入，底部分頁列維持五格
+  { key: '/visits', icon: <CalendarOutlined />, label: '到訪與統計', mobileLabel: '到訪', mobile: true },
+  { key: '/settings', icon: <SettingOutlined />, label: '設定', mobile: false },
 ]
 
 function activeKey(pathname: string) {
@@ -39,6 +50,15 @@ export default function AppLayout() {
         <Link to="/" className="app-brand">
           FoodBuddy<span className="app-brand-sub">美食夥伴</span>
         </Link>
+        {!isDesktop && (
+          <Link
+            to="/settings"
+            className={selected === '/settings' ? 'app-header-settings app-header-settings--active' : 'app-header-settings'}
+            aria-label="設定"
+          >
+            <SettingOutlined />
+          </Link>
+        )}
       </Header>
       <Layout>
         {isDesktop && (
@@ -65,7 +85,7 @@ export default function AppLayout() {
               aria-current={selected === n.key ? 'page' : undefined}
             >
               <span className="app-tab-icon">{n.icon}</span>
-              <span>{n.label}</span>
+              <span>{n.mobileLabel ?? n.label}</span>
             </Link>
           ))}
         </nav>

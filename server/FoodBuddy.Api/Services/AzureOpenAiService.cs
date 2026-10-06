@@ -47,6 +47,22 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
         - 全部使用繁體中文。
         """;
 
+    const string TastePrompt = """
+        你是美食夥伴，根據使用者的收藏統計與到訪紀錄，寫一段溫暖、具體的口味觀察。
+        - 用「你」稱呼使用者，全部使用繁體中文。
+        - 只根據提供的資料，不要編造沒去過的店或沒出現過的數字；資料少時就說得保守一點，並鼓勵多記錄。
+        - highlights 要引用具體的料理、地區、店名或次數。
+        - suggestions 給出可行的下一步（例如想試的料理類型、某個地區、或去想再訪清單中的店），不要推薦具體的新店名。
+        - notRecommended 是使用者標為不推薦的店：不要建議再去這些店，也不要把它們當成喜歡的例子。
+        """;
+
+    public async Task<TasteInsight> AnalyzeTasteAsync(TasteInsightRequest request, CancellationToken ct)
+    {
+        var json = await CompleteAsync(
+            TastePrompt, JsonSerializer.Serialize(request, Json), "taste_insight", AiSchemas.TasteInsight(), "low", 4000, ct);
+        return Deserialize<TasteInsight>(json);
+    }
+
     public async Task<SearchConditions> ParseAsync(string query, CancellationToken ct)
     {
         var json = await CompleteAsync(ParsePrompt, query, "search_conditions", AiSchemas.Conditions(), "minimal", 2000, ct);

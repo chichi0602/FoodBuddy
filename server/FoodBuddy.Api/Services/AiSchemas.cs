@@ -84,6 +84,13 @@ internal static class AiSchemas
         });
     }
 
+    public static JsonObject TasteInsight() => Obj(new JsonObject
+    {
+        ["summary"] = Str("2～3 句話描述使用者的飲食口味與習慣，用「你」稱呼"),
+        ["highlights"] = StrArray("3～5 個具體觀察，例如「最常吃拉麵，5 次到訪有 4 次給 4 星以上」"),
+        ["suggestions"] = StrArray("2～3 個下次可以嘗試的方向，要和口味相關但帶點新鮮感"),
+    });
+
     public static JsonObject Analyses(IEnumerable<string> candidateIds) => Obj(new JsonObject
     {
         ["recommendations"] = new JsonObject { ["type"] = "array", ["items"] = AnalysisItem(candidateIds) },

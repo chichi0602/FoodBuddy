@@ -1,11 +1,16 @@
 import { App, Button, Card, Descriptions, Empty, Image, Popconfirm, Rate, Result, Space, Spin, Tag } from 'antd'
-import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined } from '@ant-design/icons'
+import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined, PlusOutlined } from '@ant-design/icons'
+import { useState } from 'react'
 import dayjs from 'dayjs'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { placeRepository } from '../db/placeRepository'
 import { MEAL_TIMES, PRICE_META } from '../constants'
 import StatusToggles from '../components/StatusToggles'
+import VisitCard from '../components/VisitCard'
+import VisitFormModal from '../components/VisitFormModal'
+import { visitRepository } from '../db/visitRepository'
+import type { VisitRecord } from '../types'
 import './PlaceDetailPage.css'
 
 export default function PlaceDetailPage() {
@@ -14,6 +19,9 @@ export default function PlaceDetailPage() {
   const { message } = App.useApp()
   // useLiveQuery 回傳 undefined 代表載入中，因此找不到時改回傳 null
   const place = useLiveQuery(async () => (await placeRepository.get(id)) ?? null, [id])
+  const visits = useLiveQuery(() => visitRepository.listByPlace(id), [id])
+  // 到訪表單：open 時 visit 為 undefined 代表新增
+  const [visitModal, setVisitModal] = useState<{ open: boolean; visit?: VisitRecord }>({ open: false })
 
   if (place === undefined) return <Spin />
   if (place === null)
@@ -117,6 +125,34 @@ export default function PlaceDetailPage() {
           )}
         </Card>
 
+        <Card
+          title={`到訪紀錄${visits && visits.length > 0 ? `（${visits.length} 次）` : ''}`}
+          className="place-detail-card place-detail-card--visits"
+          extra={
+            <Button type="primary" size="small" icon={<PlusOutlined />} onClick={() => setVisitModal({ open: true })}>
+              新增到訪
+            </Button>
+          }
+        >
+          {visits && visits.length > 0 ? (
+            <div className="place-detail-visits">
+              {visits.map((v) => (
+                <VisitCard
+                  key={v.id}
+                  visit={v}
+                  onEdit={() => setVisitModal({ open: true, visit: v })}
+                  onDelete={async () => {
+                    await visitRepository.remove(v.id)
+                    message.success('已刪除到訪紀錄')
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="去吃過了嗎？記下日期、評分、吃了什麼和心得，AI 會更懂你的口味。" />
+          )}
+        </Card>
+
         <Card title="基本資料" className="place-detail-card">
           <Descriptions column={1} size="small">
             <Descriptions.Item label="地址">{place.address || '—'}</Descriptions.Item>
@@ -193,6 +229,12 @@ export default function PlaceDetailPage() {
           )}
         </Card>
       </div>
+      <VisitFormModal
+        open={visitModal.open}
+        placeId={place.id}
+        visit={visitModal.visit}
+        onClose={() => setVisitModal({ open: false })}
+      />
     </div>
   )
 }

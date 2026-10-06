@@ -1,0 +1,161 @@
+.visits-page {
+  max-width: 960px;
+}
+
+.visits-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.visits-search {
+  flex: 1;
+  min-width: 220px;
+  max-width: 360px;
+}
+
+.visits-place-filter {
+  width: 200px;
+}
+
+.visits-month {
+  margin-bottom: 24px;
+}
+
+.visits-month-title {
+  margin: 0 0 10px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--teal-deep);
+}
+
+.visits-month-count {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  color: var(--gray);
+  margin-left: 6px;
+}
+
+.visits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 統計 */
+.visits-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.visits-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.visits-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #e4eef1;
+  border-radius: 18px;
+}
+
+.visits-tile-num {
+  font-family: var(--font-display);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--teal);
+}
+
+.visits-tile-label {
+  font-size: 13px;
+  color: var(--charcoal);
+}
+
+/* AI 口味分析：用主色區塊，是這頁的重點 */
+.visits-ai {
+  background: var(--teal);
+  background-image: radial-gradient(circle at 92% 8%, rgba(166, 218, 236, 0.35) 0, rgba(166, 218, 236, 0) 45%);
+  color: #fff;
+  border-radius: 20px;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.visits-ai-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.visits-ai-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 22px;
+  color: #fff;
+}
+
+.visits-ai-hint,
+.visits-ai-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--sky-light);
+}
+
+.visits-ai-summary {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+.visits-ai-subtitle {
+  margin: 6px 0 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--sky-light);
+}
+
+.visits-ai-list {
+  margin: 0;
+  padding-left: 1.2em;
+  line-height: 1.8;
+}
+
+.visits-ai-list--try {
+  list-style: '→ ';
+}
+
+.visits-bars {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 767px) {
+  .visits-tiles {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .visits-bars {
+    grid-template-columns: 1fr;
+  }
+
+  .visits-place-filter {
+    flex: 1;
+  }
+
+  .visits-ai {
+    padding: 18px 16px;
+  }
+}

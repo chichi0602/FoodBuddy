@@ -21,6 +21,9 @@ public interface IAiService
         IReadOnlyList<SavedCandidate> saved,
         TasteProfile? profile,
         CancellationToken ct);
+
+    /// <summary>依收藏與到訪紀錄寫一段口味觀察（Agenda 第 18 節「收藏分析」）</summary>
+    Task<TasteInsight> AnalyzeTasteAsync(TasteInsightRequest request, CancellationToken ct);
 }
 
 /// <summary>AI 服務失敗；Message 會直接顯示給使用者，不可含金鑰或原始錯誤內容</summary>

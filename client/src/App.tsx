@@ -7,6 +7,7 @@ import PlaceDetailPage from './pages/PlaceDetailPage'
 import ComingSoonPage from './pages/ComingSoonPage'
 import AiSearchPage from './pages/AiSearchPage'
 import MapPage from './pages/MapPage'
+import VisitsPage from './pages/VisitsPage'
 import SettingsPage from './pages/SettingsPage'
 
 export default function App() {
@@ -20,7 +21,7 @@ export default function App() {
         <Route path="my/:id/edit" element={<PlaceFormPage />} />
         <Route path="ai" element={<AiSearchPage />} />
         <Route path="map" element={<MapPage />} />
-        <Route path="visits" element={<ComingSoonPage title="到訪紀錄" phase="Phase 7" />} />
+        <Route path="visits" element={<VisitsPage />} />
         <Route path="settings" element={<SettingsPage />} />
         <Route path="*" element={<ComingSoonPage title="找不到這個頁面" />} />
       </Route>

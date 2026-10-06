@@ -1,0 +1,72 @@
+.stat-bars {
+  background: #fff;
+  border: 1px solid #e4eef1;
+  border-radius: 20px;
+  padding: 16px 18px;
+}
+
+.stat-bars-title {
+  margin: 0 0 12px;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 17px;
+  color: var(--teal-deep);
+}
+
+.stat-bars-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gray);
+}
+
+.stat-bars-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 標籤｜長條｜數值；hover 整列都是觸發範圍（大於長條本身） */
+.stat-bars-row {
+  display: grid;
+  grid-template-columns: minmax(64px, 30%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 4px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.stat-bars-row:hover {
+  background: #f1f8fa;
+}
+
+.stat-bars-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--charcoal);
+}
+
+.stat-bars-track {
+  height: 8px;
+  border-radius: 4px;
+  background: #e8f1f4;
+  overflow: hidden;
+}
+
+.stat-bars-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--teal);
+}
+
+.stat-bars-value {
+  min-width: 36px;
+  text-align: right;
+  color: var(--charcoal);
+  font-variant-numeric: tabular-nums;
+}

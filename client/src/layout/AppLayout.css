@@ -84,3 +84,24 @@
   color: var(--teal);
   font-weight: 400;
 }
+
+.app-header {
+  justify-content: space-between;
+}
+
+.app-header-settings {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--sky-light);
+  font-size: 20px;
+}
+
+.app-header-settings:hover,
+.app-header-settings--active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+}

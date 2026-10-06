@@ -51,6 +51,24 @@ public class AiController(IAiService ai, RecommendationService recommender) : Co
         }
     }
 
+    /// <summary>依收藏與到訪紀錄分析口味</summary>
+    [HttpPost("taste-insight")]
+    public async Task<ActionResult<TasteInsightResponse>> TasteInsight(TasteInsightRequest request, CancellationToken ct)
+    {
+        if (request.Stats.TotalSaved == 0)
+            return BadRequest(new ApiError("還沒有任何收藏，先存幾間店再來分析口味吧。"));
+        // 只送最近 100 筆，控制 token 數
+        var trimmed = request with { Visits = request.Visits.Take(100).ToList() };
+        try
+        {
+            return new TasteInsightResponse(await ai.AnalyzeTasteAsync(trimmed, ct), ai.IsMock);
+        }
+        catch (AiServiceException ex)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new ApiError(ex.Message));
+        }
+    }
+
     ActionResult? Validate(string? query)
     {
         if (string.IsNullOrWhiteSpace(query)) return BadRequest(new ApiError("請輸入想找的美食條件。"));

@@ -81,7 +81,10 @@ export default function AiSearchPage() {
   const places = useLiveQuery(() => placeRepository.list(), [])
   const history = useLiveQuery(() => db.searchHistory.orderBy('createdAt').reverse().limit(5).toArray(), [])
 
-  const profile = useMemo(() => (places ? buildTasteProfile(places) : null), [places])
+  const visits = useLiveQuery(() => db.visits.toArray(), [])
+  const profile = useMemo(() => (places ? buildTasteProfile(places, visits) : null), [places, visits])
+  const visitsRef = useRef(visits)
+  visitsRef.current = visits
 
   // 收藏區：AI 回來前先用地名與料理比對立即顯示，回來後改用 AI 的挑選與評語
   const collection = useMemo(() => {
@@ -169,7 +172,7 @@ export default function AiSearchPage() {
         cond,
         exclude,
         origin,
-        { profile: buildTasteProfile(mine), savedPlaces: toSavedInputs(mine) },
+        { profile: buildTasteProfile(mine, visitsRef.current), savedPlaces: toSavedInputs(mine) },
         ctrl.signal,
       )
       setRecommendations(res.recommendations)
