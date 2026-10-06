@@ -20,14 +20,32 @@ npm run dev
 
 ## Azure OpenAI 設定
 
-在 `server/FoodBuddy.Api/appsettings.Development.json`（已加入 .gitignore）填入：
+金鑰使用 [.NET User Secrets](https://learn.microsoft.com/aspnet/core/security/app-secrets) 存放，檔案在專案資料夾外，不會進 git。開發環境（Development）啟動時會自動讀取。
+
+**方法一：直接編輯 secrets.json**
+
+`%APPDATA%\Microsoft\UserSecrets\61fdfd9c-d88f-4efe-b8f9-20e5fd73fb71\secrets.json`
 
 ```json
-"AzureOpenAI": {
-  "Endpoint": "https://<your-resource>.openai.azure.com/",
-  "ApiKey": "<your-api-key>",
-  "Deployment": "<your-deployment-name>"
+{
+  "AzureOpenAI": {
+    "Endpoint": "https://<your-resource>.openai.azure.com/",
+    "ApiKey": "<your-api-key>",
+    "Deployment": "<your-deployment-name>"
+  }
 }
 ```
+
+**方法二：用指令設定**
+
+```bash
+cd server/FoodBuddy.Api
+dotnet user-secrets set "AzureOpenAI:Endpoint" "https://<your-resource>.openai.azure.com/"
+dotnet user-secrets set "AzureOpenAI:ApiKey" "<your-api-key>"
+dotnet user-secrets set "AzureOpenAI:Deployment" "<your-deployment-name>"
+dotnet user-secrets list   # 確認設定
+```
+
+設定好後啟動後端，開啟 http://localhost:5122/api/health，`aiConfigured` 為 `true` 代表已讀到設定。
 
 AI 功能於 Phase 3 加入；未填金鑰時會使用模擬資料。

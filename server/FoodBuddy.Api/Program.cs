@@ -22,7 +22,13 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 app.UseAuthorization();
 
-app.MapGet("/api/health", () => Results.Ok(new { status = "ok" }));
+// aiConfigured 只回報 Azure OpenAI 設定是否齊全，不回傳任何金鑰內容
+app.MapGet("/api/health", (IConfiguration config) =>
+{
+    var ai = config.GetSection("AzureOpenAI");
+    var aiConfigured = new[] { "Endpoint", "ApiKey", "Deployment" }.All(k => !string.IsNullOrWhiteSpace(ai[k]));
+    return Results.Ok(new { status = "ok", aiConfigured });
+});
 app.MapControllers();
 
 app.Run();
