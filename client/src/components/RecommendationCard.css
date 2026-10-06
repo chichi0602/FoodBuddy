@@ -1,0 +1,131 @@
+.rec-card {
+  background: #fff;
+  border: 1px solid #e4eef1;
+  border-radius: 20px;
+  padding: 18px 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.rec-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rec-card-title {
+  min-width: 0;
+}
+
+.rec-card-name {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 20px;
+  color: var(--teal-deep);
+  margin: 0 0 4px;
+}
+
+.rec-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 13px;
+  color: var(--gray);
+}
+
+.rec-card-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--gray);
+  flex-shrink: 0;
+}
+
+.rec-card-score .ant-progress-text {
+  color: var(--teal-deep) !important;
+  font-size: 15px !important;
+}
+
+.rec-card-tags .ant-tag {
+  margin: 0 4px 0 0;
+}
+
+.rec-card-reason {
+  margin: 0;
+  padding: 10px 14px;
+  background: #eef8fb;
+  border-radius: 14px;
+  line-height: 1.7;
+}
+
+.rec-card-line {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.rec-card-label {
+  display: inline-block;
+  min-width: 68px;
+  color: var(--gray);
+}
+
+.rec-card-proscons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+  font-size: 13px;
+}
+
+.rec-card-proscons ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rec-card-proscons li {
+  padding-left: 1.4em;
+  text-indent: -1.4em;
+  line-height: 1.7;
+}
+
+.rec-card-pros li::before {
+  content: '＋';
+  color: var(--teal);
+  margin-right: 0.4em;
+}
+
+.rec-card-cons li::before {
+  content: '－';
+  color: var(--gray);
+  margin-right: 0.4em;
+}
+
+.rec-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px dashed #e4eef1;
+  padding-top: 12px;
+  margin-top: auto;
+}
+
+.rec-card-saved {
+  color: var(--teal);
+  font-size: 13px;
+}
+
+.rec-card-maps {
+  font-size: 13px;
+}
+
+@media (max-width: 767px) {
+  .rec-card-proscons {
+    grid-template-columns: 1fr;
+  }
+}

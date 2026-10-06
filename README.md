@@ -7,6 +7,10 @@
 
 ## 啟動
 
+**快速啟動（Windows）**：雙擊專案根目錄的 `start.bat`，會自動開兩個視窗分別跑後端與前端，並開啟瀏覽器 http://localhost:5173。關閉兩個視窗即停止系統。
+
+手動啟動：
+
 ```bash
 # 後端（http://localhost:5122）
 cd server/FoodBuddy.Api

@@ -30,6 +30,8 @@ export interface Place {
   tags: string[]
   /** 資料來源：手動新增或 AI 搜尋加入 */
   source: 'manual' | 'ai'
+  /** 從 AI 推薦加入時保存的分析 */
+  aiSummary?: AiSummary
   createdAt: number
   updatedAt: number
 }
@@ -72,4 +74,47 @@ export interface AISearchHistory {
 /** 列表顯示用：店家 + 個人資料 */
 export interface PlaceWithUser extends Place {
   user: UserPlace
+}
+
+/** AI 解析出的搜尋條件（對應後端 SearchConditions） */
+export interface SearchConditions {
+  summary: string
+  country: string | null
+  city: string | null
+  district: string | null
+  landmark: string | null
+  cuisines: string[]
+  mealTime: MealTime | null
+  people: number | null
+  budgetPerPerson: number | null
+  keywords: string[]
+}
+
+/** AI 推薦的店家（對應後端 Recommendation） */
+export interface Recommendation {
+  name: string
+  city: string | null
+  district: string | null
+  address: string | null
+  placeType: string | null
+  cuisines: string[]
+  priceRange: PriceRange | null
+  estimatedPricePerPerson: number | null
+  reputation: string | null
+  recommendedDishes: string[]
+  reason: string
+  pros: string[]
+  cons: string[]
+  suitableFor: string | null
+  matchScore: number
+}
+
+export interface AiSummary {
+  reason: string
+  pros: string[]
+  cons: string[]
+  reputation?: string
+  suitableFor?: string
+  query: string
+  savedAt: number
 }

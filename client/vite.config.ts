@@ -6,7 +6,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://localhost:5122',
+      // 可用 API_URL 環境變數改指向其他後端位址
+      '/api': process.env.API_URL ?? 'http://localhost:5122',
     },
   },
 })

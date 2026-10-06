@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Rate, Tag } from 'antd'
 import { EnvironmentOutlined } from '@ant-design/icons'
 import { Link } from 'react-router-dom'
@@ -8,7 +9,14 @@ import { formatDistance } from '../utils/geo'
 import StatusToggles from './StatusToggles'
 import './PlaceCard.css'
 
-export default function PlaceCard({ place, distanceKm }: { place: PlaceWithUser; distanceKm?: number }) {
+interface Props {
+  place: PlaceWithUser
+  distanceKm?: number
+  /** 額外顯示在標籤列的內容，例如 AI 比對提示 */
+  extra?: ReactNode
+}
+
+export default function PlaceCard({ place, distanceKm, extra }: Props) {
   const location = [place.city, place.district].filter(Boolean).join(' ')
   return (
     <article className="place-card">
@@ -41,6 +49,7 @@ export default function PlaceCard({ place, distanceKm }: { place: PlaceWithUser;
                 #{t}
               </Tag>
             ))}
+            {extra}
           </div>
         </div>
       </Link>

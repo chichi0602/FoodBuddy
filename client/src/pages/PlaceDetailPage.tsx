@@ -1,5 +1,6 @@
 import { App, Button, Card, Descriptions, Empty, Image, Popconfirm, Rate, Result, Space, Spin, Tag } from 'antd'
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, EnvironmentOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { placeRepository } from '../db/placeRepository'
@@ -149,7 +150,47 @@ export default function PlaceDetailPage() {
         </Card>
 
         <Card title="AI 整理" className="place-detail-card">
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="AI 店家分析會在 AI 找美食功能完成後提供。" />
+          {place.aiSummary ? (
+            <div className="place-detail-ai">
+              <p className="place-detail-ai-reason">{place.aiSummary.reason}</p>
+              {place.aiSummary.reputation && (
+                <p>
+                  <span className="place-detail-label">網路評價</span>
+                  {place.aiSummary.reputation}
+                </p>
+              )}
+              {place.aiSummary.suitableFor && (
+                <p>
+                  <span className="place-detail-label">推薦族群</span>
+                  {place.aiSummary.suitableFor}
+                </p>
+              )}
+              {place.aiSummary.pros.length > 0 && (
+                <p>
+                  <span className="place-detail-label">優點</span>
+                  {place.aiSummary.pros.join('、')}
+                </p>
+              )}
+              {place.aiSummary.cons.length > 0 && (
+                <p>
+                  <span className="place-detail-label">可能缺點</span>
+                  {place.aiSummary.cons.join('、')}
+                </p>
+              )}
+              <p className="place-detail-ai-note">
+                {dayjs(place.aiSummary.savedAt).format('YYYY/MM/DD')} 搜尋「{place.aiSummary.query}」時由 AI 整理，資訊可能已過時。
+              </p>
+            </div>
+          ) : (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={
+                <>
+                  從 <Link to={`/ai?q=${encodeURIComponent(place.name)}`}>AI 找美食</Link> 加入的店會在這裡顯示 AI 分析。
+                </>
+              }
+            />
+          )}
         </Card>
       </div>
     </div>
