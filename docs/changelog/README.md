@@ -9,7 +9,7 @@
 
 | 變更（新到舊） | 文件 | Commit |
 |------|------|------|
-| Phase 7：到訪紀錄、店家狀態與評分同步、口味統計、AI 口味分析 | [Phase7-到訪與口味統計](2026-10-06-Phase7-到訪與口味統計.md) | 待 commit |
+| Phase 7：到訪紀錄、店家狀態與評分同步、口味統計、AI 口味分析 | [Phase7-到訪與口味統計](2026-10-06-Phase7-到訪與口味統計.md) | `1d9ed1e` |
 | Phase 6：地圖頁、AI 結果地圖、用地址找座標 | [Phase6-地圖呈現](2026-10-06-Phase6-地圖呈現.md) | `bce5bfc` |
 | Phase 5：AI 推薦同時參考收藏與口味，結果分成三區 | [Phase5-AI參考個人收藏](2026-10-06-Phase5-AI參考個人收藏.md) | `cab5e16` |
 | Phase 4：改用 OpenStreetMap 真實店家，AI 只能從中挑選 | [Phase4-串接OpenStreetMap](2026-10-06-Phase4-串接OpenStreetMap.md) | `33129f7` |
