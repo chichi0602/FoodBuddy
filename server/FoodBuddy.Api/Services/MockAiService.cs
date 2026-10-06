@@ -77,12 +77,20 @@ public partial class MockAiService : IAiService
     }
 
     public async Task<IReadOnlyList<AiAnalysis>> RankAsync(
-        string query, SearchConditions c, IReadOnlyList<PlaceCandidate> candidates, CancellationToken ct)
+        string query,
+        SearchConditions c,
+        IReadOnlyList<PlaceCandidate> candidates,
+        IReadOnlyList<SavedCandidate> saved,
+        TasteProfile? profile,
+        CancellationToken ct)
     {
         await Task.Delay(600, ct);
 
+        // 示範口味判斷：這次想吃的料理剛好是使用者最常收藏的
+        var favorite = profile?.TopCuisines.Select(t => t.Name).FirstOrDefault(c.Cuisines.Contains);
+
         // 候選已依「料理相符 → 距離」排序，示範模式直接取前 5 間
-        return candidates.Take(5).Select((p, i) =>
+        var fresh = candidates.Take(5).Select((p, i) =>
         {
             var reasons = new List<string>();
             if (p.CuisineMatched) reasons.Add("店名或料理分類符合你想吃的");
@@ -100,8 +108,26 @@ public partial class MockAiService : IAiService
                 Pros: p.CuisineMatched ? ["符合料理條件"] : [],
                 Cons: p.CuisineMatched ? [] : ["料理類型未確認"],
                 SuitableFor: null,
+                PreferenceReason: favorite is not null && p.CuisineMatched ? $"（示範）你常收藏{favorite}的店" : null,
                 MatchScore: Math.Max(40, (p.CuisineMatched ? 95 : 70) - i * 5));
-        }).ToList();
+        });
+
+        var mine = saved.Where(s => s.CuisineMatched).Take(5).Select((s, i) => new AiAnalysis(
+            CandidateId: s.Id,
+            PlaceType: null,
+            Cuisines: s.Place.Cuisines,
+            PriceRange: s.Place.PriceRange,
+            EstimatedPricePerPerson: null,
+            Reputation: null,
+            RecommendedDishes: [],
+            Reason: $"（示範）你之前收藏的這間{(s.DistanceMeters is { } d ? $"距離約 {d} 公尺，" : "在這個地區，")}料理也符合這次需求。",
+            Pros: [],
+            Cons: [],
+            SuitableFor: null,
+            PreferenceReason: null,
+            MatchScore: 98 - i * 3));
+
+        return fresh.Concat(mine).ToList();
     }
 
     [GeneratedRegex(@"(?:[市縣])?([一-龥]{2})區")]

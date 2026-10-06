@@ -1,4 +1,4 @@
-import type { RecommendResult, SearchConditions } from '../types'
+import type { RecommendResult, SavedPlaceInput, SearchConditions, TasteProfile } from '../types'
 import type { LatLng } from '../utils/geo'
 
 export class AiApiError extends Error {}
@@ -40,6 +40,7 @@ export const aiApi = {
     conditions: SearchConditions,
     excludeNames: string[],
     origin: LatLng | undefined,
+    personal: { profile: TasteProfile | null; savedPlaces: SavedPlaceInput[] },
     signal?: AbortSignal,
-  ) => post<RecommendResult>('recommend', { query, conditions, excludeNames, origin }, signal),
+  ) => post<RecommendResult>('recommend', { query, conditions, excludeNames, origin, ...personal }, signal),
 }

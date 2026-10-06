@@ -114,6 +114,8 @@ export interface Recommendation {
   pros: string[]
   cons: string[]
   suitableFor: string | null
+  /** 符合使用者口味時的依據；有值的放「根據你的口味推薦」 */
+  preferenceReason: string | null
   matchScore: number
 }
 
@@ -137,8 +139,40 @@ export interface SearchArea {
 
 export interface RecommendResult {
   recommendations: Recommendation[]
+  /** AI 從收藏中挑出、符合這次需求的店 */
+  saved: SavedPick[]
   mock: boolean
   area: SearchArea | null
   candidateCount: number
   message: string | null
+}
+
+/** 從收藏計算的口味摘要，送給 AI 參考 */
+export interface TasteProfile {
+  topCuisines: { name: string; count: number }[]
+  preferredPriceRanges: PriceRange[]
+  highRated: string[]
+  dislikedCuisines: string[]
+  dislikedNames: string[]
+  totalSaved: number
+}
+
+/** 送給後端的收藏（精簡欄位） */
+export interface SavedPlaceInput {
+  id: string
+  name: string
+  lat: number | null
+  lng: number | null
+  city: string | null
+  district: string | null
+  cuisines: string[]
+  statuses: PlaceStatus[]
+  rating: number | null
+  priceRange: PriceRange | null
+}
+
+export interface SavedPick {
+  placeId: string
+  reason: string
+  matchScore: number
 }

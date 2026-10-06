@@ -50,6 +50,13 @@ export default function RecommendationCard({ item, saved, onSave, saving }: Prop
         ))}
       </div>
 
+      {item.preferenceReason && (
+        <p className="rec-card-pref">
+          <span className="rec-card-pref-label">為你推薦</span>
+          {item.preferenceReason}
+        </p>
+      )}
+
       <p className="rec-card-reason">{item.reason}</p>
 
       <ul className="rec-card-facts">

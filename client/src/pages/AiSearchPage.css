@@ -196,3 +196,56 @@
     margin-top: 4px;
   }
 }
+
+.ai-taste {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.ai-taste-label {
+  color: var(--gray);
+  margin-right: 2px;
+}
+
+.ai-taste-tag.ant-tag {
+  margin: 0;
+  border-radius: 999px;
+  background: #fff;
+  border-color: var(--sky-light);
+  color: var(--teal-deep);
+}
+
+.ai-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ai-subtitle {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 18px;
+  color: var(--teal-deep);
+  margin: 0;
+}
+
+.ai-saved {
+  display: flex;
+  flex-direction: column;
+}
+
+/* AI 對收藏的評語，像便條貼在卡片上方 */
+.ai-saved-reason {
+  margin: 0 0 -10px;
+  padding: 10px 14px 18px;
+  background: var(--sky-light);
+  color: var(--teal-deep);
+  border-radius: 20px 20px 0 0;
+  font-size: 13px;
+  line-height: 1.6;
+}

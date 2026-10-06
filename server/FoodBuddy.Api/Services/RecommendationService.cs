@@ -12,6 +12,8 @@ public class RecommendationService(IPlaceSearchService places, IAiService ai, IL
     public const string OriginLabel = "目前位置";
     const int OriginRadiusMeters = 1500;
     const int MaxResults = 5;
+    const int MaxSavedCandidates = 20;
+    const double SavedRadiusFactor = 1.2;
 
     public async Task<RecommendResponse> RecommendAsync(RecommendRequest request, CancellationToken ct)
     {
@@ -29,25 +31,37 @@ public class RecommendationService(IPlaceSearchService places, IAiService ai, IL
             throw new RecommendationException(message);
         }
 
+        var allSaved = request.SavedPlaces ?? [];
+        var saved = SelectSaved(allSaved, area, c);
+
+        // 已在收藏裡的店（包含不推薦）不再當成新店推薦
         var exclude = (request.ExcludeNames ?? []).ToHashSet();
         var candidates = (await places.SearchAsync(area, c.Cuisines, c.Keywords, ct))
             .Where(p => !exclude.Contains(p.Name))
+            .Where(p => !allSaved.Any(s => AreaMatcher.IsSamePlace(s.Name, s.Lat, s.Lng, p.Name, p.Lat, p.Lng)))
             .ToList();
 
-        if (candidates.Count == 0)
-            return new RecommendResponse([], ai.IsMock, area, 0, "OpenStreetMap 在這個範圍內沒有找到餐飲店家，試試附近其他地點。");
+        if (candidates.Count == 0 && saved.Count == 0)
+            return new RecommendResponse([], [], ai.IsMock, area, 0, "OpenStreetMap 在這個範圍內沒有找到餐飲店家，試試附近其他地點。");
 
-        var analyses = await ai.RankAsync(request.Query, c, candidates, ct);
+        var analyses = await ai.RankAsync(request.Query, c, candidates, saved, request.Profile, ct);
         var byId = candidates.ToDictionary(p => p.Id);
-        var invalid = analyses.Count(a => !byId.ContainsKey(a.CandidateId));
-        if (invalid > 0) logger.LogWarning("AI returned {Count} ids not in the candidate list; discarded", invalid);
+        var savedById = saved.ToDictionary(s => s.Id);
+        var invalid = analyses.Count(a => !byId.ContainsKey(a.CandidateId) && !savedById.ContainsKey(a.CandidateId));
+        if (invalid > 0) logger.LogWarning("AI returned {Count} ids not in the candidate lists; discarded", invalid);
 
-        var results = analyses
+        var picks = analyses.DistinctBy(a => a.CandidateId).OrderByDescending(a => a.MatchScore).ToList();
+        var results = picks
             .Where(a => byId.ContainsKey(a.CandidateId))
-            .DistinctBy(a => a.CandidateId)
-            .OrderByDescending(a => a.MatchScore)
+            // 連鎖店的不同分店只留分數最高的一間
+            .DistinctBy(a => AreaMatcher.NormalizeName(byId[a.CandidateId].Name))
             .Take(MaxResults)
             .Select(a => Merge(byId[a.CandidateId], a, c, area))
+            .ToList();
+        var savedPicks = picks
+            .Where(a => savedById.ContainsKey(a.CandidateId))
+            .Take(MaxResults)
+            .Select(a => new SavedPick(savedById[a.CandidateId].Place.Id, a.Reason, Math.Clamp(a.MatchScore, 0, 100)))
             .ToList();
 
         var note = results.Count switch
@@ -56,7 +70,45 @@ public class RecommendationService(IPlaceSearchService places, IAiService ai, IL
             < MaxResults => $"範圍內符合條件的店家較少，只找到 {results.Count} 間。可以放寬條件或換個地點。",
             _ => null,
         };
-        return new RecommendResponse(results, ai.IsMock, area, candidates.Count, note);
+        return new RecommendResponse(results, savedPicks, ai.IsMock, area, candidates.Count, note);
+    }
+
+    /// <summary>
+    /// 找出位於搜尋範圍內的收藏：有座標的看距離，沒有座標的比對城市與行政區。
+    /// 不推薦的店不列入；料理相符者優先。
+    /// </summary>
+    static List<SavedCandidate> SelectSaved(IReadOnlyList<SavedPlaceInput> all, SearchArea area, SearchConditions c)
+    {
+        var maxDistance = area.RadiusMeters * SavedRadiusFactor;
+        var wanted = c.Cuisines.Concat(c.Keywords).Where(w => w.Length > 0).ToList();
+        var result = new List<SavedCandidate>();
+        foreach (var p in all)
+        {
+            if (p.Statuses.Contains("notRecommended")) continue;
+
+            int? distance = null;
+            if (p.Lat is { } lat && p.Lng is { } lng)
+            {
+                distance = (int)Math.Round(OsmPlaceSearchService.DistanceMeters(area.Lat, area.Lng, lat, lng));
+                if (distance > maxDistance) continue;
+            }
+            else
+            {
+                // 定位搜尋沒有地名可比，沒有座標的收藏無法判斷是否在附近
+                if (area.Label == OriginLabel) continue;
+                var hasArea = !string.IsNullOrWhiteSpace(c.City) || !string.IsNullOrWhiteSpace(c.District);
+                if (!hasArea || !AreaMatcher.SameArea(c.City, p.City) || !AreaMatcher.SameArea(c.District, p.District)) continue;
+            }
+
+            var matched = wanted.Count > 0 &&
+                          wanted.Any(w => p.Cuisines.Contains(w) || p.Name.Contains(w, StringComparison.OrdinalIgnoreCase));
+            result.Add(new SavedCandidate(SavedCandidate.IdPrefix + p.Id, p, distance, matched));
+        }
+        return result
+            .OrderByDescending(s => s.CuisineMatched)
+            .ThenBy(s => s.DistanceMeters ?? int.MaxValue)
+            .Take(MaxSavedCandidates)
+            .ToList();
     }
 
     static Recommendation Merge(PlaceCandidate p, AiAnalysis a, SearchConditions c, SearchArea area) => new(
@@ -82,6 +134,7 @@ public class RecommendationService(IPlaceSearchService places, IAiService ai, IL
         Pros: a.Pros,
         Cons: a.Cons,
         SuitableFor: a.SuitableFor,
+        PreferenceReason: string.IsNullOrWhiteSpace(a.PreferenceReason) ? null : a.PreferenceReason,
         MatchScore: Math.Clamp(a.MatchScore, 0, 100));
 }
 

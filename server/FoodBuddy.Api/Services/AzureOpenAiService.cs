@@ -33,15 +33,17 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
         """;
 
     const string RankPrompt = """
-        你是美食推薦助理。下方是從 OpenStreetMap 取得、真實存在於搜尋範圍內的店家清單，
-        請依使用者需求從中挑出最多 5 間最適合的店，並為每間寫分析。
+        你是美食推薦助理。依使用者需求，從兩份清單中挑店並寫分析：
+        「我的收藏」是使用者自己存過、位於搜尋範圍內的店；「地圖店家」是 OpenStreetMap 上真實存在、使用者還沒收藏的店。
         - 只能從清單中挑選，用 candidateId 指定；不可推薦清單以外的店。
-        - 清單中的「料理」是 OSM 標籤，可能缺漏，請同時依店名判斷料理類型。
-        - 如果你認識這間店，可以寫評價與推薦餐點；不認識就填 null 或空陣列，不可捏造。
-        - 價格不確定就填 null。
-        - reason 要具體說明符合使用者哪些條件（料理、距離、時段、預算、人數、關鍵字）；pros、cons 各 1～3 點，簡短。
-        - 符合的店不足 5 間時寧可少給，不要硬湊；matchScore 反映符合程度。
-        - reason、pros、cons 是寫給使用者看的：不要提到「OSM」「標籤」「候選清單」「id」等系統用語，距離用「約 1.4 公里」「步行約 5 分鐘」這類說法。
+        - 「我的收藏」：只挑真的符合這次需求的（最多 5 間），沒有就不挑；reason 用「你之前收藏的這間…」的語氣，說明為什麼這次適合。
+        - 「地圖店家」：挑出最適合的最多 5 間。如果某間明顯符合使用者口味摘要（常收藏的料理、偏好價位、高評分的店類型），
+          在 preferenceReason 寫出具體依據；只是剛好符合需求、和口味無關的就填 null，不要硬套。
+        - 避開使用者標記不推薦的料理類型與店家。
+        - 「料理」欄是地圖標籤，可能缺漏，請同時依店名判斷。認識的店可以寫評價與推薦餐點，不認識就填 null 或空陣列，不可捏造；價格不確定填 null。
+        - reason 要具體對應使用者條件（料理、距離、時段、預算、人數、關鍵字）；pros、cons 各 1～3 點，簡短。
+        - 符合的店不足時寧可少給；matchScore 反映符合程度。
+        - 給使用者看的文字不要提到「OSM」「標籤」「候選清單」「id」等系統用語，距離用「約 1.4 公里」「步行約 5 分鐘」這類說法。
         - 全部使用繁體中文。
         """;
 
@@ -52,22 +54,37 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
     }
 
     public async Task<IReadOnlyList<AiAnalysis>> RankAsync(
-        string query, SearchConditions conditions, IReadOnlyList<PlaceCandidate> candidates, CancellationToken ct)
+        string query,
+        SearchConditions conditions,
+        IReadOnlyList<PlaceCandidate> candidates,
+        IReadOnlyList<SavedCandidate> saved,
+        TasteProfile? profile,
+        CancellationToken ct)
     {
         // 精簡的表格格式，控制 token 數
-        var lines = candidates.Select(p =>
-            $"{p.Id} | {p.Name} | {p.Amenity} | {p.Cuisine ?? "-"} | {p.DistanceMeters}m | {(p.OpeningHours is null ? "-" : p.OpeningHours)}");
+        var mapLines = candidates.Select(p =>
+            $"{p.Id} | {p.Name} | {p.Amenity} | {p.Cuisine ?? "-"} | {p.DistanceMeters}m | {p.OpeningHours ?? "-"}");
+        var savedLines = saved.Select(s =>
+            $"{s.Id} | {s.Place.Name} | {(s.Place.Cuisines.Count > 0 ? string.Join("/", s.Place.Cuisines) : "-")} | " +
+            $"{(s.DistanceMeters is { } d ? $"{d}m" : "-")} | {string.Join("/", s.Place.Statuses)} | {(s.Place.Rating is { } r ? $"{r}★" : "-")}");
+
         var user = $"""
             使用者需求：{query}
 
             已解析條件（JSON）：
             {JsonSerializer.Serialize(conditions, Json)}
 
-            候選店家（id | 店名 | 類型 | 料理 | 距離 | 營業時間）：
-            {string.Join("\n", lines)}
+            使用者口味摘要（JSON，null 代表收藏太少還看不出偏好）：
+            {(profile is null ? "null" : JsonSerializer.Serialize(profile, Json))}
+
+            我的收藏（id | 店名 | 料理 | 距離 | 狀態 | 評分）：
+            {(saved.Count == 0 ? "（無）" : string.Join("\n", savedLines))}
+
+            地圖店家（id | 店名 | 類型 | 料理 | 距離 | 營業時間）：
+            {(candidates.Count == 0 ? "（無）" : string.Join("\n", mapLines))}
             """;
-        var json = await CompleteAsync(
-            RankPrompt, user, "recommendations", AiSchemas.Analyses(candidates.Select(c => c.Id)), "low", 8000, ct);
+        var ids = candidates.Select(c => c.Id).Concat(saved.Select(s => s.Id));
+        var json = await CompleteAsync(RankPrompt, user, "recommendations", AiSchemas.Analyses(ids), "low", 10000, ct);
         return Deserialize<AnalysisList>(json).Recommendations;
     }
 

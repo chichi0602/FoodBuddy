@@ -5,12 +5,13 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Link, useSearchParams } from 'react-router-dom'
 import { db } from '../db/db'
 import { placeRepository } from '../db/placeRepository'
-import { MEAL_TIMES, STATUS_META } from '../constants'
+import { MEAL_TIMES, PRICE_META, STATUS_META } from '../constants'
 import { aiApi } from '../services/aiApi'
 import PlaceCard from '../components/PlaceCard'
 import RecommendationCard from '../components/RecommendationCard'
 import type { PlaceStatus, Recommendation, RecommendResult, SearchConditions } from '../types'
 import { findSaved, matchCollection, recommendationToPlace } from '../utils/aiMatch'
+import { buildTasteProfile, toSavedInputs } from '../utils/tasteProfile'
 import { formatDistance, getCurrentPosition, type LatLng } from '../utils/geo'
 import './AiSearchPage.css'
 
@@ -77,10 +78,23 @@ export default function AiSearchPage() {
   const places = useLiveQuery(() => placeRepository.list(), [])
   const history = useLiveQuery(() => db.searchHistory.orderBy('createdAt').reverse().limit(5).toArray(), [])
 
-  const collection = useMemo(
-    () => (conditions && places ? matchCollection(places, conditions) : []),
-    [conditions, places],
-  )
+  const profile = useMemo(() => (places ? buildTasteProfile(places) : null), [places])
+
+  // 收藏區：AI 回來前先用地名與料理比對立即顯示，回來後改用 AI 的挑選與評語
+  const collection = useMemo(() => {
+    if (!conditions || !places) return []
+    if (phase === 'done' && result) {
+      const byId = new Map(places.map((p) => [p.id, p]))
+      return result.saved.flatMap((pick) => {
+        const place = byId.get(pick.placeId)
+        return place ? [{ place, hints: [] as string[], reason: pick.reason as string | undefined }] : []
+      })
+    }
+    return matchCollection(places, conditions).map((m) => ({ ...m, reason: undefined as string | undefined }))
+  }, [conditions, places, phase, result])
+
+  const preferred = recommendations.filter((r) => r.preferenceReason)
+  const discovered = recommendations.filter((r) => !r.preferenceReason)
   const placesRef = useRef(places)
   placesRef.current = places
 
@@ -90,8 +104,7 @@ export default function AiSearchPage() {
     abortRef.current = ctrl
     setError(undefined)
     setResult(undefined)
-    // 排除收藏中已符合條件的店，讓 AI 專心找新店
-    const inCollection = matchCollection(placesRef.current ?? [], cond).map((m) => m.place.name)
+    const mine = placesRef.current ?? []
     try {
       // 需求沒有地點時，用目前位置當搜尋中心
       let origin: LatLng | undefined
@@ -101,7 +114,15 @@ export default function AiSearchPage() {
         if (ctrl.signal.aborted) return
       }
       setPhase('recommending')
-      const res = await aiApi.recommend(query, cond, [...inCollection, ...exclude], origin, ctrl.signal)
+      // 收藏與口味摘要一起送出：後端找出範圍內的收藏，AI 依口味分出「為你推薦」與「新發現」
+      const res = await aiApi.recommend(
+        query,
+        cond,
+        exclude,
+        origin,
+        { profile: buildTasteProfile(mine), savedPlaces: toSavedInputs(mine) },
+        ctrl.signal,
+      )
       setRecommendations(res.recommendations)
       setResult(res)
       setMock(res.mock)
@@ -167,6 +188,16 @@ export default function AiSearchPage() {
       setSavingName(undefined)
     }
   }
+
+  const renderCard = (r: Recommendation) => (
+    <RecommendationCard
+      key={r.id}
+      item={r}
+      saved={places ? findSaved(places, r) : undefined}
+      saving={savingName === r.name}
+      onSave={(st) => save(r, st)}
+    />
+  )
 
   const busy = phase === 'parsing' || phase === 'locating' || phase === 'recommending'
   const chips = conditions ? conditionChips(conditions) : []
@@ -268,18 +299,24 @@ export default function AiSearchPage() {
           <h2 id="ai-mine-title" className="ai-section-title">
             我的收藏符合條件 <span className="ai-count">{collection.length}</span>
           </h2>
-          <p className="ai-hint">你之前存過的店，這次也符合需求，可以優先考慮。</p>
+          <p className="ai-hint">
+            {phase === 'done'
+              ? '你之前存過的店，AI 判斷這次也適合，可以優先考慮。'
+              : '你之前存過、地區與料理相符的店；AI 正在確認是否適合這次需求…'}
+          </p>
           <div className="ai-grid">
             {collection.map((m) => (
-              <PlaceCard
-                key={m.place.id}
-                place={m.place}
-                extra={m.hints.map((h) => (
-                  <Tag key={h} color="#386E80">
-                    {h}
-                  </Tag>
-                ))}
-              />
+              <div key={m.place.id} className="ai-saved">
+                {m.reason && <p className="ai-saved-reason">{m.reason}</p>}
+                <PlaceCard
+                  place={m.place}
+                  extra={m.hints.map((h) => (
+                    <Tag key={h} color="#386E80">
+                      {h}
+                    </Tag>
+                  ))}
+                />
+              </div>
             ))}
           </div>
         </section>
@@ -289,22 +326,36 @@ export default function AiSearchPage() {
         <section className="ai-section" aria-labelledby="ai-rec-title">
           <div className="ai-section-head">
             <h2 id="ai-rec-title" className="ai-section-title">
-              AI 推薦 {phase === 'done' && <span className="ai-count">{recommendations.length}</span>}
+              AI 推薦新店 {phase === 'done' && <span className="ai-count">{recommendations.length}</span>}
             </h2>
             {phase === 'done' && conditions && recommendations.length > 0 && (
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => recommend(q, conditions, recommendations.map((r) => r.name))}
-              >
+              <Button icon={<ReloadOutlined />} onClick={() => recommend(q, conditions, recommendations.map((r) => r.name))}>
                 換一批
               </Button>
             )}
           </div>
-          <p className="ai-hint">店家資料來自 OpenStreetMap，評價與推薦餐點由 AI 整理，可能不完整；出發前請先在 Google Maps 確認營業狀況。</p>
+          <p className="ai-hint">
+            店家資料來自 OpenStreetMap，評價與推薦餐點由 AI 整理，可能不完整；出發前請先在 Google Maps 確認營業狀況。
+          </p>
           {result?.area && (
             <p className="ai-area">
               以「{result.area.label}」為中心 {formatDistance(result.area.radiusMeters / 1000)}內，從地圖資料找到{' '}
               {result.candidateCount} 間相關店家
+            </p>
+          )}
+          {profile && (
+            <p className="ai-taste">
+              <span className="ai-taste-label">AI 參考了你的口味</span>
+              {profile.topCuisines.slice(0, 3).map((c) => (
+                <Tag key={c.name} className="ai-taste-tag">
+                  {c.name}
+                </Tag>
+              ))}
+              {profile.preferredPriceRanges.length > 0 && (
+                <Tag className="ai-taste-tag">
+                  常見價位 {profile.preferredPriceRanges.map((p) => PRICE_META[p].label).join('、')}
+                </Tag>
+              )}
             </p>
           )}
           {phase === 'done' && result?.message && <Alert type="warning" showIcon title={result.message} />}
@@ -313,7 +364,7 @@ export default function AiSearchPage() {
 
           {phase === 'recommending' && (
             <>
-              <p className="ai-status">正在查詢地圖上的店家，再由 AI 挑選與分析，大約需要 15～30 秒…</p>
+              <p className="ai-status">正在查詢地圖上的店家，再由 AI 對照你的收藏與口味挑選，大約需要 20～40 秒…</p>
               <div className="ai-grid">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="ai-skeleton">
@@ -325,20 +376,26 @@ export default function AiSearchPage() {
           )}
 
           {phase === 'done' && recommendations.length === 0 && !result?.message && (
-            <Empty description="沒有找到符合的店，試著移除一些條件或換個說法。" />
+            <Empty description="沒有找到符合的新店，試著移除一些條件或換個說法。" />
           )}
 
-          {phase === 'done' && recommendations.length > 0 && (
-            <div className="ai-grid">
-              {recommendations.map((r) => (
-                <RecommendationCard
-                  key={r.id}
-                  item={r}
-                  saved={places ? findSaved(places, r) : undefined}
-                  saving={savingName === r.name}
-                  onSave={(s) => save(r, s)}
-                />
-              ))}
+          {phase === 'done' && preferred.length > 0 && (
+            <div className="ai-subsection">
+              <h3 className="ai-subtitle">
+                根據你的口味推薦 <span className="ai-count">{preferred.length}</span>
+              </h3>
+              <p className="ai-hint">和你常收藏、評分高的店相似的新店。</p>
+              <div className="ai-grid">{preferred.map(renderCard)}</div>
+            </div>
+          )}
+
+          {phase === 'done' && discovered.length > 0 && (
+            <div className="ai-subsection">
+              <h3 className="ai-subtitle">
+                AI 網路探索 <span className="ai-count">{discovered.length}</span>
+              </h3>
+              <p className="ai-hint">符合這次需求、你還沒收藏過的新發現。</p>
+              <div className="ai-grid">{discovered.map(renderCard)}</div>
             </div>
           )}
         </section>

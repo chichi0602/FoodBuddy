@@ -79,6 +79,7 @@ internal static class AiSchemas
             ["pros"] = StrArray("優點"),
             ["cons"] = StrArray("可能的缺點"),
             ["suitableFor"] = NullableStr("適合的族群或情境"),
+            ["preferenceReason"] = NullableStr("只用於地圖新店：明顯符合使用者口味時，寫具體依據（例如「你常收藏拉麵店，這間是豚骨拉麵」）；否則 null。收藏的店一律 null"),
             ["matchScore"] = new JsonObject { ["type"] = "integer", ["description"] = "符合使用者條件的程度 0 到 100" },
         });
     }
