@@ -1,9 +1,10 @@
 import { Button, Progress, Space, Tag } from 'antd'
-import { EnvironmentOutlined } from '@ant-design/icons'
+import { ClockCircleOutlined, EnvironmentOutlined, GlobalOutlined, PhoneOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
 import { Link } from 'react-router-dom'
 import { PRICE_META, STATUS_META } from '../constants'
 import type { PlaceStatus, PlaceWithUser, Recommendation } from '../types'
 import { googleMapsSearchUrl } from '../utils/aiMatch'
+import { formatDistance } from '../utils/geo'
 import StatusTags from './StatusTags'
 import './RecommendationCard.css'
 
@@ -17,7 +18,6 @@ interface Props {
 }
 
 export default function RecommendationCard({ item, saved, onSave, saving }: Props) {
-  const location = [item.city, item.district].filter(Boolean).join(' ')
   const price = item.estimatedPricePerPerson
     ? `約 $${item.estimatedPricePerPerson} / 人`
     : item.priceRange
@@ -30,11 +30,10 @@ export default function RecommendationCard({ item, saved, onSave, saving }: Prop
         <div className="rec-card-title">
           <h3 className="rec-card-name">{item.name}</h3>
           <div className="rec-card-meta">
-            {location && (
-              <span>
-                <EnvironmentOutlined /> {location}
-              </span>
-            )}
+            <span className="rec-card-verified">
+              <SafetyCertificateOutlined /> 地圖已驗證
+            </span>
+            <span>距離 {formatDistance(item.distanceMeters / 1000)}</span>
             {item.placeType && <span>{item.placeType}</span>}
             {price && <span>{price}</span>}
           </div>
@@ -52,6 +51,30 @@ export default function RecommendationCard({ item, saved, onSave, saving }: Prop
       </div>
 
       <p className="rec-card-reason">{item.reason}</p>
+
+      <ul className="rec-card-facts">
+        <li>
+          <EnvironmentOutlined /> {item.address ?? '地圖資料沒有地址，請用 Google Maps 確認位置'}
+        </li>
+        {item.openingHours && (
+          <li>
+            <ClockCircleOutlined /> {item.openingHours}
+          </li>
+        )}
+        {item.phone && (
+          <li>
+            <PhoneOutlined /> <a href={`tel:${item.phone}`}>{item.phone}</a>
+          </li>
+        )}
+        {item.website && (
+          <li>
+            <GlobalOutlined />{' '}
+            <a href={item.website} target="_blank" rel="noreferrer">
+              官方網站
+            </a>
+          </li>
+        )}
+      </ul>
 
       {item.recommendedDishes.length > 0 && (
         <p className="rec-card-line">

@@ -58,30 +58,33 @@ internal static class AiSchemas
         ["mealTime"] = NullableEnum(MealTimes, "用餐時段"),
         ["people"] = NullableInt("用餐人數"),
         ["budgetPerPerson"] = NullableInt("每人預算（新台幣元）"),
-        ["keywords"] = StrArray("其他需求關鍵字，例如 安靜、適合約會、有停車位、想吃牛肉湯"),
+        ["keywords"] = StrArray("其他需求關鍵字，只寫名詞，例如 牛肉湯、壽司、安靜、適合約會、有停車位；不要加「想吃」「想要」等動詞"),
     });
 
-    static JsonObject RecommendationItem() => Obj(new JsonObject
+    /// <summary>candidateId 以 enum 限定為候選清單中的 id，模型無法產生清單外的店家</summary>
+    static JsonObject AnalysisItem(IEnumerable<string> candidateIds)
     {
-        ["name"] = Str("店家名稱"),
-        ["city"] = NullableStr("城市正式全名"),
-        ["district"] = NullableStr("行政區正式全名"),
-        ["address"] = NullableStr("地址；不確定時一定要填 null，不可猜測"),
-        ["placeType"] = NullableStr("店家類型，例如 餐廳、小吃攤、咖啡廳"),
-        ["cuisines"] = StrArray($"料理類型，優先使用：{string.Join("、", Cuisines)}"),
-        ["priceRange"] = NullableEnum(PriceRanges, "每人價格區間"),
-        ["estimatedPricePerPerson"] = NullableInt("每人大約消費（新台幣元）"),
-        ["reputation"] = NullableStr("網路上的整體評價摘要"),
-        ["recommendedDishes"] = StrArray("推薦餐點"),
-        ["reason"] = Str("為什麼推薦給這位使用者，需對應使用者的條件"),
-        ["pros"] = StrArray("優點"),
-        ["cons"] = StrArray("可能的缺點"),
-        ["suitableFor"] = NullableStr("適合的族群或情境"),
-        ["matchScore"] = new JsonObject { ["type"] = "integer", ["description"] = "符合使用者條件的程度 0 到 100" },
-    });
+        var ids = new JsonArray();
+        foreach (var id in candidateIds) ids.Add(id);
+        return Obj(new JsonObject
+        {
+            ["candidateId"] = new JsonObject { ["type"] = "string", ["enum"] = ids, ["description"] = "候選店家的 id" },
+            ["placeType"] = NullableStr("店家類型，例如 餐廳、小吃店、咖啡廳"),
+            ["cuisines"] = StrArray($"料理類型，優先使用：{string.Join("、", Cuisines)}"),
+            ["priceRange"] = NullableEnum(PriceRanges, "每人價格區間；不清楚填 null"),
+            ["estimatedPricePerPerson"] = NullableInt("每人大約消費（新台幣元）；不清楚填 null"),
+            ["reputation"] = NullableStr("你所知道的網路評價摘要；不認識這間店就填 null"),
+            ["recommendedDishes"] = StrArray("推薦餐點；不認識這間店就給空陣列"),
+            ["reason"] = Str("為什麼推薦給這位使用者，需對應使用者的條件"),
+            ["pros"] = StrArray("優點"),
+            ["cons"] = StrArray("可能的缺點"),
+            ["suitableFor"] = NullableStr("適合的族群或情境"),
+            ["matchScore"] = new JsonObject { ["type"] = "integer", ["description"] = "符合使用者條件的程度 0 到 100" },
+        });
+    }
 
-    public static JsonObject Recommendations() => Obj(new JsonObject
+    public static JsonObject Analyses(IEnumerable<string> candidateIds) => Obj(new JsonObject
     {
-        ["recommendations"] = new JsonObject { ["type"] = "array", ["items"] = RecommendationItem() },
+        ["recommendations"] = new JsonObject { ["type"] = "array", ["items"] = AnalysisItem(candidateIds) },
     });
 }

@@ -1,11 +1,12 @@
 using System.Text.RegularExpressions;
 using FoodBuddy.Api.Models;
+using FoodBuddy.Api.Services.Places;
 
 namespace FoodBuddy.Api.Services;
 
 /// <summary>
-/// 未設定 Azure OpenAI 時使用的示範服務：以簡單規則解析需求，並產生明顯標示為示範的店家，
-/// 讓前端在沒有金鑰時也能走完整個流程。
+/// 未設定 Azure OpenAI 時使用的示範服務：以簡單規則解析需求，並直接依料理相符與距離排序真實候選店家，
+/// 讓沒有金鑰時也能走完整個流程。
 /// </summary>
 public partial class MockAiService : IAiService
 {
@@ -75,52 +76,32 @@ public partial class MockAiService : IAiService
             Keywords: keywords);
     }
 
-    public async Task<IReadOnlyList<Recommendation>> RecommendAsync(
-        string query, SearchConditions c, IReadOnlyList<string> excludeNames, CancellationToken ct)
+    public async Task<IReadOnlyList<AiAnalysis>> RankAsync(
+        string query, SearchConditions c, IReadOnlyList<PlaceCandidate> candidates, CancellationToken ct)
     {
-        await Task.Delay(900, ct);
+        await Task.Delay(600, ct);
 
-        var area = c.District ?? c.City ?? "附近";
-        var cuisine = c.Cuisines.FirstOrDefault() ?? "台式";
-        var budget = c.BudgetPerPerson ?? 400;
-        string Price(int v) => v < 200 ? "under200" : v <= 500 ? "200to500" : v <= 1000 ? "500to1000" : "over1000";
-
-        // 準備 10 個名稱，「換一批」排除前 5 間後仍有新的示範店
-        var items = new[]
+        // 候選已依「料理相符 → 距離」排序，示範模式直接取前 5 間
+        return candidates.Take(5).Select((p, i) =>
         {
-            ("食堂", 96, budget, "距離搜尋地區近、價格符合預算"),
-            ("小館", 88, budget - 100, "在地人常去，CP 值高"),
-            ("本店", 81, budget + 150, "網路評價穩定，適合多人聚餐"),
-            ("屋台", 74, budget - 200, "營業到較晚，適合臨時決定"),
-            ("別館", 65, budget + 400, "環境安靜，價格稍微超出預算"),
-            ("工房", 92, budget + 50, "主廚料理口碑好，份量足"),
-            ("横丁", 85, budget - 50, "巷弄老店，價格實惠"),
-            ("亭", 79, budget + 100, "座位寬敞，適合聚餐"),
-            ("家", 70, budget - 150, "家常口味，出餐快"),
-            ("坊", 62, budget + 300, "裝潢有特色，適合拍照"),
-        };
-
-        return items
-            .Select(i => (Name: $"示範・{area}{cuisine}{i.Item1}", i.Item2, Price: Math.Max(i.Item3, 80), i.Item4))
-            .Where(i => !excludeNames.Contains(i.Name))
-            .Take(5)
-            .Select(i => new Recommendation(
-                Name: i.Name,
-                City: c.City,
-                District: c.District,
-                Address: null,
-                PlaceType: "餐廳",
-                Cuisines: [cuisine],
-                PriceRange: Price(i.Price),
-                EstimatedPricePerPerson: i.Price,
-                Reputation: "這是示範資料，設定 Azure OpenAI 金鑰後會顯示真實推薦。",
-                RecommendedDishes: ["招牌套餐", "季節限定"],
-                Reason: $"{i.Item4}，符合「{c.Summary.Replace("（示範解析）", "")}」的需求。",
-                Pros: ["示範優點：份量足", "示範優點：出餐快"],
-                Cons: ["示範缺點：假日需排隊"],
-                SuitableFor: c.People is > 2 ? "多人聚餐" : "一般用餐",
-                MatchScore: i.Item2))
-            .ToList();
+            var reasons = new List<string>();
+            if (p.CuisineMatched) reasons.Add("店名或料理分類符合你想吃的");
+            reasons.Add($"距離搜尋中心約 {p.DistanceMeters} 公尺");
+            if (p.OpeningHours is not null) reasons.Add("有標示營業時間");
+            return new AiAnalysis(
+                CandidateId: p.Id,
+                PlaceType: p.Amenity switch { "cafe" => "咖啡廳", "fast_food" => "速食", "ice_cream" => "冰品甜點", "bar" or "pub" => "酒吧", _ => "餐廳" },
+                Cuisines: c.Cuisines.Count > 0 && p.CuisineMatched ? [c.Cuisines[0]] : [],
+                PriceRange: null,
+                EstimatedPricePerPerson: null,
+                Reputation: null,
+                RecommendedDishes: [],
+                Reason: $"（示範排序）{string.Join("、", reasons)}。設定 Azure OpenAI 金鑰後會由 AI 分析。",
+                Pros: p.CuisineMatched ? ["符合料理條件"] : [],
+                Cons: p.CuisineMatched ? [] : ["料理類型未確認"],
+                SuitableFor: null,
+                MatchScore: Math.Max(40, (p.CuisineMatched ? 95 : 70) - i * 5));
+        }).ToList();
     }
 
     [GeneratedRegex(@"(?:[市縣])?([一-龥]{2})區")]

@@ -9,11 +9,23 @@ import { MEAL_TIMES, STATUS_META } from '../constants'
 import { aiApi } from '../services/aiApi'
 import PlaceCard from '../components/PlaceCard'
 import RecommendationCard from '../components/RecommendationCard'
-import type { PlaceStatus, Recommendation, SearchConditions } from '../types'
+import type { PlaceStatus, Recommendation, RecommendResult, SearchConditions } from '../types'
 import { findSaved, matchCollection, recommendationToPlace } from '../utils/aiMatch'
+import { formatDistance, getCurrentPosition, type LatLng } from '../utils/geo'
 import './AiSearchPage.css'
 
-type Phase = 'idle' | 'parsing' | 'recommending' | 'done' | 'error'
+type Phase = 'idle' | 'parsing' | 'locating' | 'recommending' | 'done' | 'error'
+
+const hasPlace = (c: SearchConditions) => !!(c.city || c.district || c.landmark)
+
+/** 取得定位；失敗時補上「可以改在需求中加地點」的提示 */
+async function locate(): Promise<LatLng> {
+  try {
+    return await getCurrentPosition()
+  } catch (e) {
+    throw new Error(`${(e as Error).message}也可以在需求中加上地點，例如「高雄左營想吃拉麵」。`)
+  }
+}
 
 interface ConditionChip {
   key: string
@@ -58,7 +70,9 @@ export default function AiSearchPage() {
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
   const [mock, setMock] = useState(false)
   const [savingName, setSavingName] = useState<string>()
+  const [result, setResult] = useState<RecommendResult>()
   const abortRef = useRef<AbortController>(undefined)
+  const originRef = useRef<LatLng>(undefined)
 
   const places = useLiveQuery(() => placeRepository.list(), [])
   const history = useLiveQuery(() => db.searchHistory.orderBy('createdAt').reverse().limit(5).toArray(), [])
@@ -74,13 +88,22 @@ export default function AiSearchPage() {
     abortRef.current?.abort()
     const ctrl = new AbortController()
     abortRef.current = ctrl
-    setPhase('recommending')
     setError(undefined)
+    setResult(undefined)
     // 排除收藏中已符合條件的店，讓 AI 專心找新店
     const inCollection = matchCollection(placesRef.current ?? [], cond).map((m) => m.place.name)
     try {
-      const res = await aiApi.recommend(query, cond, [...inCollection, ...exclude], ctrl.signal)
+      // 需求沒有地點時，用目前位置當搜尋中心
+      let origin: LatLng | undefined
+      if (!hasPlace(cond)) {
+        setPhase('locating')
+        origin = originRef.current ?? (originRef.current = await locate())
+        if (ctrl.signal.aborted) return
+      }
+      setPhase('recommending')
+      const res = await aiApi.recommend(query, cond, [...inCollection, ...exclude], origin, ctrl.signal)
       setRecommendations(res.recommendations)
+      setResult(res)
       setMock(res.mock)
       setPhase('done')
     } catch (e) {
@@ -145,7 +168,7 @@ export default function AiSearchPage() {
     }
   }
 
-  const busy = phase === 'parsing' || phase === 'recommending'
+  const busy = phase === 'parsing' || phase === 'locating' || phase === 'recommending'
   const chips = conditions ? conditionChips(conditions) : []
 
   return (
@@ -262,7 +285,7 @@ export default function AiSearchPage() {
         </section>
       )}
 
-      {(phase === 'recommending' || phase === 'done' || (phase === 'error' && conditions)) && (
+      {(phase === 'locating' || phase === 'recommending' || phase === 'done' || (phase === 'error' && conditions)) && (
         <section className="ai-section" aria-labelledby="ai-rec-title">
           <div className="ai-section-head">
             <h2 id="ai-rec-title" className="ai-section-title">
@@ -277,11 +300,20 @@ export default function AiSearchPage() {
               </Button>
             )}
           </div>
-          <p className="ai-hint">由 AI 依既有知識推薦，店家資訊可能過時或有誤，出發前請先在 Google Maps 確認。</p>
+          <p className="ai-hint">店家資料來自 OpenStreetMap，評價與推薦餐點由 AI 整理，可能不完整；出發前請先在 Google Maps 確認營業狀況。</p>
+          {result?.area && (
+            <p className="ai-area">
+              以「{result.area.label}」為中心 {formatDistance(result.area.radiusMeters / 1000)}內，從地圖資料找到{' '}
+              {result.candidateCount} 間相關店家
+            </p>
+          )}
+          {phase === 'done' && result?.message && <Alert type="warning" showIcon title={result.message} />}
+
+          {phase === 'locating' && <p className="ai-status">需求中沒有地點，正在取得你的目前位置…</p>}
 
           {phase === 'recommending' && (
             <>
-              <p className="ai-status">AI 正在挑選店家並整理分析，大約需要 15～30 秒…</p>
+              <p className="ai-status">正在查詢地圖上的店家，再由 AI 挑選與分析，大約需要 15～30 秒…</p>
               <div className="ai-grid">
                 {[0, 1, 2].map((i) => (
                   <div key={i} className="ai-skeleton">
@@ -292,17 +324,17 @@ export default function AiSearchPage() {
             </>
           )}
 
-          {phase === 'done' && recommendations.length === 0 && (
-            <Empty description="AI 沒有找到符合的店，試著移除一些條件或換個說法。" />
+          {phase === 'done' && recommendations.length === 0 && !result?.message && (
+            <Empty description="沒有找到符合的店，試著移除一些條件或換個說法。" />
           )}
 
           {phase === 'done' && recommendations.length > 0 && (
             <div className="ai-grid">
               {recommendations.map((r) => (
                 <RecommendationCard
-                  key={r.name}
+                  key={r.id}
                   item={r}
-                  saved={places ? findSaved(places, r.name) : undefined}
+                  saved={places ? findSaved(places, r) : undefined}
                   saving={savingName === r.name}
                   onSave={(s) => save(r, s)}
                 />
@@ -328,6 +360,13 @@ export default function AiSearchPage() {
       {phase === 'done' && (
         <p className="ai-footnote">
           想手動記下一間店？<Link to="/my/new">新增店家</Link>
+          <span className="ai-attribution">
+            地圖資料 ©{' '}
+            <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">
+              OpenStreetMap
+            </a>{' '}
+            貢獻者
+          </span>
         </p>
       )}
     </div>

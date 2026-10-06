@@ -1,4 +1,5 @@
-import type { Recommendation, SearchConditions } from '../types'
+import type { RecommendResult, SearchConditions } from '../types'
+import type { LatLng } from '../utils/geo'
 
 export class AiApiError extends Error {}
 
@@ -34,6 +35,11 @@ export const aiApi = {
   parse: (query: string, signal?: AbortSignal) =>
     post<{ conditions: SearchConditions; mock: boolean }>('parse', { query }, signal),
 
-  recommend: (query: string, conditions: SearchConditions, excludeNames: string[], signal?: AbortSignal) =>
-    post<{ recommendations: Recommendation[]; mock: boolean }>('recommend', { query, conditions, excludeNames }, signal),
+  recommend: (
+    query: string,
+    conditions: SearchConditions,
+    excludeNames: string[],
+    origin: LatLng | undefined,
+    signal?: AbortSignal,
+  ) => post<RecommendResult>('recommend', { query, conditions, excludeNames, origin }, signal),
 }

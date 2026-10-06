@@ -1,6 +1,7 @@
 import { MEAL_TIMES, PRICE_META } from '../constants'
 import type { PlaceInput } from '../db/placeRepository'
 import type { PlaceWithUser, Recommendation, SearchConditions } from '../types'
+import { distanceKm } from './geo'
 
 /** 地名寬鬆比對：「高雄市」=「高雄」、「臺南」=「台南」 */
 export function normalizeArea(s: string): string {
@@ -63,21 +64,32 @@ export function matchCollection(places: PlaceWithUser[], c: SearchConditions): C
   return matches.sort((a, b) => weight(b) - weight(a))
 }
 
-/** AI 推薦的店是否已經在我的美食裡 */
-export function findSaved(places: PlaceWithUser[], name: string): PlaceWithUser | undefined {
-  const target = normalizeName(name)
+/**
+ * AI 推薦的店是否已經在我的美食裡：店名相同，
+ * 或兩邊都有座標、距離 100 公尺內且店名互相包含（例如「一風堂」與「一風堂 巨蛋店」）
+ */
+export function findSaved(
+  places: PlaceWithUser[],
+  r: Pick<Recommendation, 'name'> & Partial<Pick<Recommendation, 'lat' | 'lng'>>,
+): PlaceWithUser | undefined {
+  const target = normalizeName(r.name)
   return places.find((p) => {
     const n = normalizeName(p.name)
-    return n === target || (Math.min(n.length, target.length) >= 3 && (n.includes(target) || target.includes(n)))
+    if (n === target) return true
+    const similar = Math.min(n.length, target.length) >= 2 && (n.includes(target) || target.includes(n))
+    if (!similar) return false
+    if (p.lat == null || p.lng == null || r.lat == null || r.lng == null) return Math.min(n.length, target.length) >= 3
+    return distanceKm({ lat: p.lat, lng: p.lng }, { lat: r.lat, lng: r.lng }) < 0.1
   })
 }
 
-export function googleMapsSearchUrl(r: Pick<Recommendation, 'name' | 'city' | 'district' | 'address'>): string {
-  const q = r.address ?? [r.name, r.city, r.district].filter(Boolean).join(' ')
+/** 有地址時用「店名＋地址」搜尋，否則用座標，避免連鎖店跳到別間分店 */
+export function googleMapsSearchUrl(r: Pick<Recommendation, 'name' | 'address' | 'lat' | 'lng'>): string {
+  const q = r.address ? `${r.name} ${r.address}` : `${r.lat},${r.lng}`
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`
 }
 
-/** AI 推薦轉成「我的美食」的店家資料，並保存 AI 分析 */
+/** AI 推薦轉成「我的美食」的店家資料，保存 OpenStreetMap 的真實資料與 AI 分析 */
 export function recommendationToPlace(r: Recommendation, query: string, country?: string | null): PlaceInput {
   return {
     name: r.name,
@@ -86,13 +98,17 @@ export function recommendationToPlace(r: Recommendation, query: string, country?
     city: r.city ?? undefined,
     district: r.district ?? undefined,
     googleMapsUrl: googleMapsSearchUrl(r),
+    lat: r.lat,
+    lng: r.lng,
     cuisines: r.cuisines,
     mealTimes: [],
     placeType: r.placeType ?? undefined,
     priceRange: r.priceRange ?? undefined,
+    openingHours: r.openingHours ?? undefined,
+    phone: r.phone ?? undefined,
     recommendedDishes: r.recommendedDishes,
     images: [],
-    links: [],
+    links: r.website ? [r.website] : [],
     tags: [],
     source: 'ai',
     aiSummary: {

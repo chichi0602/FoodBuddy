@@ -1,12 +1,13 @@
 using FoodBuddy.Api.Models;
 using FoodBuddy.Api.Services;
+using FoodBuddy.Api.Services.Places;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FoodBuddy.Api.Controllers;
 
 [ApiController]
 [Route("api/ai")]
-public class AiController(IAiService ai) : ControllerBase
+public class AiController(IAiService ai, RecommendationService recommender) : ControllerBase
 {
     const int MaxQueryLength = 500;
     const int MaxExcludeNames = 100;
@@ -27,18 +28,24 @@ public class AiController(IAiService ai) : ControllerBase
         }
     }
 
-    /// <summary>依條件推薦店家</summary>
+    /// <summary>從 OpenStreetMap 取得範圍內的真實店家，再由 AI 挑選與分析</summary>
     [HttpPost("recommend")]
     public async Task<ActionResult<RecommendResponse>> Recommend(RecommendRequest request, CancellationToken ct)
     {
         if (Validate(request.Query) is { } error) return error;
+        if (request.Origin is { } o && (Math.Abs(o.Lat) > 90 || Math.Abs(o.Lng) > 180))
+            return BadRequest(new ApiError("定位座標不正確。"));
+
         var exclude = (request.ExcludeNames ?? []).Where(n => !string.IsNullOrWhiteSpace(n)).Take(MaxExcludeNames).ToList();
         try
         {
-            var items = await ai.RecommendAsync(request.Query.Trim(), request.Conditions, exclude, ct);
-            return new RecommendResponse(items, ai.IsMock);
+            return await recommender.RecommendAsync(request with { Query = request.Query.Trim(), ExcludeNames = exclude }, ct);
         }
-        catch (AiServiceException ex)
+        catch (RecommendationException ex)
+        {
+            return BadRequest(new ApiError(ex.Message));
+        }
+        catch (Exception ex) when (ex is AiServiceException or PlaceSearchException)
         {
             return StatusCode(StatusCodes.Status502BadGateway, new ApiError(ex.Message));
         }

@@ -1,5 +1,6 @@
 using FoodBuddy.Api.Options;
 using FoodBuddy.Api.Services;
+using FoodBuddy.Api.Services.Places;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,12 @@ else
 {
     builder.Services.AddSingleton<IAiService, MockAiService>();
 }
+
+// OpenStreetMap 真實店家（Nominatim + Overpass）
+builder.Services.AddMemoryCache();
+builder.Services.Configure<OsmOptions>(builder.Configuration.GetSection(OsmOptions.SectionName));
+builder.Services.AddHttpClient<IPlaceSearchService, OsmPlaceSearchService>(c => c.Timeout = TimeSpan.FromSeconds(40));
+builder.Services.AddScoped<RecommendationService>();
 
 var app = builder.Build();
 

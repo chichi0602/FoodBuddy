@@ -90,12 +90,20 @@ export interface SearchConditions {
   keywords: string[]
 }
 
-/** AI 推薦的店家（對應後端 Recommendation） */
+/** AI 推薦的店家：基本資料來自 OpenStreetMap，分析來自 AI（對應後端 Recommendation） */
 export interface Recommendation {
+  /** OpenStreetMap id，例如 node/123 */
+  id: string
   name: string
   city: string | null
   district: string | null
   address: string | null
+  lat: number
+  lng: number
+  distanceMeters: number
+  openingHours: string | null
+  phone: string | null
+  website: string | null
   placeType: string | null
   cuisines: string[]
   priceRange: PriceRange | null
@@ -117,4 +125,20 @@ export interface AiSummary {
   suitableFor?: string
   query: string
   savedAt: number
+}
+
+/** 推薦的搜尋範圍 */
+export interface SearchArea {
+  lat: number
+  lng: number
+  label: string
+  radiusMeters: number
+}
+
+export interface RecommendResult {
+  recommendations: Recommendation[]
+  mock: boolean
+  area: SearchArea | null
+  candidateCount: number
+  message: string | null
 }

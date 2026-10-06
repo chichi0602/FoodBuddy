@@ -178,3 +178,21 @@
     grid-template-columns: 1fr;
   }
 }
+
+.ai-area {
+  margin: 0;
+  font-size: 13px;
+  color: var(--teal);
+}
+
+.ai-attribution {
+  float: right;
+}
+
+@media (max-width: 767px) {
+  .ai-attribution {
+    float: none;
+    display: block;
+    margin-top: 4px;
+  }
+}
