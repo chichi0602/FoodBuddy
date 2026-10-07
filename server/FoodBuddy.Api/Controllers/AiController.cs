@@ -51,6 +51,26 @@ public class AiController(IAiService ai, RecommendationService recommender) : Co
         }
     }
 
+    /// <summary>首頁「為你推薦」：依口味推薦還沒去過的店</summary>
+    [HttpPost("for-you")]
+    public async Task<ActionResult<RecommendResponse>> ForYou(ForYouRequest request, CancellationToken ct)
+    {
+        if (request.Origin is { } o && (Math.Abs(o.Lat) > 90 || Math.Abs(o.Lng) > 180))
+            return BadRequest(new ApiError("定位座標不正確。"));
+        try
+        {
+            return await recommender.ForYouAsync(request, ct);
+        }
+        catch (RecommendationException ex)
+        {
+            return BadRequest(new ApiError(ex.Message));
+        }
+        catch (Exception ex) when (ex is AiServiceException or PlaceSearchException)
+        {
+            return StatusCode(StatusCodes.Status502BadGateway, new ApiError(ex.Message));
+        }
+    }
+
     /// <summary>依收藏與到訪紀錄分析口味</summary>
     [HttpPost("taste-insight")]
     public async Task<ActionResult<TasteInsightResponse>> TasteInsight(TasteInsightRequest request, CancellationToken ct)

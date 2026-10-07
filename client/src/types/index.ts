@@ -117,6 +117,25 @@ export interface Recommendation {
   /** 符合使用者口味時的依據；有值的放「根據你的口味推薦」 */
   preferenceReason: string | null
   matchScore: number
+  /** Recommendation Score 0～100，推薦依此排序 */
+  score: number
+  scoreBreakdown: ScoreItem[]
+}
+
+/** 推薦分數的一項 */
+export interface ScoreItem {
+  key: string
+  label: string
+  points: number
+  max: number
+  note: string
+}
+
+/** 使用者按過「沒興趣」的店（以 OpenStreetMap id 記錄） */
+export interface DismissedPlace {
+  id: string
+  name: string
+  dismissedAt: number
 }
 
 export interface AiSummary {

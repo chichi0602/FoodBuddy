@@ -14,6 +14,7 @@ import { PlacePopup, RecommendationPopup } from '../components/MapPopups'
 import type { PlaceStatus, Recommendation, RecommendResult, SearchConditions } from '../types'
 import { findSaved, matchCollection, recommendationToPlace } from '../utils/aiMatch'
 import { buildTasteProfile, toSavedInputs } from '../utils/tasteProfile'
+import { useDismissed } from '../hooks/useDismissed'
 import { distanceKm, formatDistance, getCurrentPosition, type LatLng } from '../utils/geo'
 import './AiSearchPage.css'
 
@@ -85,6 +86,9 @@ export default function AiSearchPage() {
   const profile = useMemo(() => (places ? buildTasteProfile(places, visits) : null), [places, visits])
   const visitsRef = useRef(visits)
   visitsRef.current = visits
+  const dismissed = useDismissed()
+  const dismissedRef = useRef(dismissed.ids)
+  dismissedRef.current = dismissed.ids
 
   // 收藏區：AI 回來前先用地名與料理比對立即顯示，回來後改用 AI 的挑選與評語
   const collection = useMemo(() => {
@@ -99,8 +103,13 @@ export default function AiSearchPage() {
     return matchCollection(places, conditions).map((m) => ({ ...m, reason: undefined as string | undefined }))
   }, [conditions, places, phase, result])
 
-  const preferred = recommendations.filter((r) => r.preferenceReason)
-  const discovered = recommendations.filter((r) => !r.preferenceReason)
+  // 按「沒興趣」的店立刻從列表與地圖消失（復原後會回來）；以 id 字串當相依，避免每次 render 重算地圖標記
+  const visibleRecs = useMemo(
+    () => recommendations.filter((r) => !dismissed.isDismissed(r.id)),
+    [recommendations, dismissed.ids.join(',')],
+  )
+  const preferred = visibleRecs.filter((r) => r.preferenceReason)
+  const discovered = visibleRecs.filter((r) => !r.preferenceReason)
 
   // 地圖：AI 推薦 ✨＋搜尋範圍內所有有座標的收藏（Agenda 第 13 節：發現附近以前收藏但還沒去的店）
   const mapMarkers = useMemo<MapMarker[]>(() => {
@@ -109,7 +118,7 @@ export default function AiSearchPage() {
     const notes = new Map(result.saved.map((p) => [p.placeId, p.reason]))
     const shown = new Set<string>()
     const markers: MapMarker[] = []
-    for (const r of recommendations) {
+    for (const r of visibleRecs) {
       // 已加入我的美食的推薦改用收藏的標記，例如加入想去後變成 📌
       const saved = findSaved(places, r)
       if (saved) shown.add(saved.id)
@@ -139,7 +148,7 @@ export default function AiSearchPage() {
     }
     return markers
     // save 每次 render 都是新函式，不放進相依避免地圖標記一直重建
-  }, [result, places, recommendations])
+  }, [result, places, visibleRecs])
 
   const mapCounts = useMemo(() => {
     const c = new Map<MarkerKind, number>()
@@ -172,7 +181,7 @@ export default function AiSearchPage() {
         cond,
         exclude,
         origin,
-        { profile: buildTasteProfile(mine, visitsRef.current), savedPlaces: toSavedInputs(mine) },
+        { profile: buildTasteProfile(mine, visitsRef.current), savedPlaces: toSavedInputs(mine), excludeIds: dismissedRef.current },
         ctrl.signal,
       )
       setRecommendations(res.recommendations)
@@ -248,6 +257,7 @@ export default function AiSearchPage() {
       saved={places ? findSaved(places, r) : undefined}
       saving={savingName === r.name}
       onSave={(st) => save(r, st)}
+      onDismiss={() => dismissed.dismiss(r)}
     />
   )
 
@@ -410,7 +420,7 @@ export default function AiSearchPage() {
         <section className="ai-section" aria-labelledby="ai-rec-title">
           <div className="ai-section-head">
             <h2 id="ai-rec-title" className="ai-section-title">
-              AI 推薦新店 {phase === 'done' && <span className="ai-count">{recommendations.length}</span>}
+              AI 推薦新店 {phase === 'done' && <span className="ai-count">{visibleRecs.length}</span>}
             </h2>
             {phase === 'done' && conditions && recommendations.length > 0 && (
               <Button icon={<ReloadOutlined />} onClick={() => recommend(q, conditions, recommendations.map((r) => r.name))}>

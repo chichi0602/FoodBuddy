@@ -39,3 +39,7 @@
   font-size: 13px;
   color: var(--teal);
 }
+
+.settings-card + .settings-card {
+  margin-top: 16px;
+}

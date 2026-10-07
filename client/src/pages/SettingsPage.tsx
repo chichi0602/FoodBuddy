@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { App, Button, Card, Empty, Input, Modal, Popconfirm, Spin } from 'antd'
-import { DeleteOutlined, EditOutlined } from '@ant-design/icons'
+import { DeleteOutlined, EditOutlined, UndoOutlined } from '@ant-design/icons'
+import dayjs from 'dayjs'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router-dom'
 import { tagRepository } from '../db/tagRepository'
+import { dismissedRepository } from '../db/dismissedRepository'
 import './SettingsPage.css'
 
 export default function SettingsPage() {
   const { message } = App.useApp()
   const tags = useLiveQuery(() => tagRepository.listWithCount(), [])
+  const dismissed = useLiveQuery(() => dismissedRepository.list(), [])
   const [editing, setEditing] = useState<string>()
   const [newName, setNewName] = useState('')
 
@@ -25,7 +28,7 @@ export default function SettingsPage() {
   return (
     <div className="settings">
       <h1 className="page-title">設定</h1>
-      <p className="page-subtitle">管理你的 Tag 與個人偏好。</p>
+      <p className="page-subtitle">管理你的 Tag 與不想再看到的推薦。</p>
 
       <Card title="Tag 管理" className="settings-card">
         {!tags ? (
@@ -62,6 +65,37 @@ export default function SettingsPage() {
                 >
                   <Button type="text" danger icon={<DeleteOutlined />} aria-label={`刪除 ${t.name}`} />
                 </Popconfirm>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      <Card title="不感興趣的店" className="settings-card">
+        {!dismissed ? (
+          <Spin />
+        ) : dismissed.length === 0 ? (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="在 AI 推薦卡片按「沒興趣」的店會列在這裡，之後的推薦都會排除它們。"
+          />
+        ) : (
+          <ul className="settings-tags">
+            {dismissed.map((d) => (
+              <li key={d.id} className="settings-tag">
+                <span className="settings-tag-name">{d.name}</span>
+                <span className="settings-tag-count">{dayjs(d.dismissedAt).format('YYYY/MM/DD')}</span>
+                <Button
+                  type="text"
+                  icon={<UndoOutlined />}
+                  aria-label={`恢復推薦 ${d.name}`}
+                  onClick={async () => {
+                    await dismissedRepository.remove(d.id)
+                    message.success(`之後會再推薦「${d.name}」`)
+                  }}
+                >
+                  恢復
+                </Button>
               </li>
             ))}
           </ul>

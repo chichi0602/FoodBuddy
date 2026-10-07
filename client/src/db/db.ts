@@ -1,5 +1,5 @@
 import Dexie, { type EntityTable } from 'dexie'
-import type { AISearchHistory, Place, Tag, UserPlace, VisitRecord } from '../types'
+import type { AISearchHistory, DismissedPlace, Place, Tag, UserPlace, VisitRecord } from '../types'
 
 export const db = new Dexie('foodbuddy') as Dexie & {
   places: EntityTable<Place, 'id'>
@@ -7,6 +7,7 @@ export const db = new Dexie('foodbuddy') as Dexie & {
   visits: EntityTable<VisitRecord, 'id'>
   tags: EntityTable<Tag, 'name'>
   searchHistory: EntityTable<AISearchHistory, 'id'>
+  dismissed: EntityTable<DismissedPlace, 'id'>
 }
 
 db.version(1).stores({
@@ -30,3 +31,8 @@ db.version(2)
         p.mealTimes ??= []
       }),
   )
+
+// v3：「沒興趣」的推薦店家（Phase 8）
+db.version(3).stores({
+  dismissed: 'id, dismissedAt',
+})

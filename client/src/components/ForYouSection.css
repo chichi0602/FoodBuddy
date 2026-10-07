@@ -1,0 +1,85 @@
+.for-you {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.for-you-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--teal-deep);
+  margin: 0;
+}
+
+.for-you-sub {
+  margin: 4px 0 0;
+  color: var(--gray);
+  font-size: 14px;
+}
+
+.for-you-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.for-you-controls .ant-segmented {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.for-you-status {
+  margin: 0;
+  color: var(--teal);
+}
+
+.for-you-meta {
+  margin: 0;
+  font-size: 13px;
+  color: var(--gray);
+}
+
+/* 附近收藏還沒去的店：淡藍膠囊，點了到詳細頁 */
+.for-you-unvisited {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: #eef8fb;
+}
+
+.for-you-unvisited-label {
+  font-size: 13px;
+  color: var(--teal-deep);
+  margin-right: 4px;
+}
+
+.for-you-unvisited-item {
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid var(--sky-light);
+  color: var(--teal-deep);
+  font-size: 13px;
+}
+
+.for-you-unvisited-item:hover {
+  border-color: var(--teal);
+  color: var(--teal);
+}
+
+.for-you-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 767px) {
+  .for-you-grid {
+    grid-template-columns: 1fr;
+  }
+}

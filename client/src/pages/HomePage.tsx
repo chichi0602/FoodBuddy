@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { placeRepository } from '../db/placeRepository'
 import { STATUS_META, STATUS_ORDER } from '../constants'
 import StatusTags from '../components/StatusTags'
+import ForYouSection from '../components/ForYouSection'
 import './HomePage.css'
 
 const EXAMPLES = [
@@ -62,6 +63,8 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      <ForYouSection />
 
       <section className="home-mine" aria-labelledby="home-mine-title">
         <div className="home-mine-head">

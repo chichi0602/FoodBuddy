@@ -1,5 +1,15 @@
+import { useState } from 'react'
 import { Button, Progress, Space, Tag } from 'antd'
-import { ClockCircleOutlined, EnvironmentOutlined, GlobalOutlined, PhoneOutlined, SafetyCertificateOutlined } from '@ant-design/icons'
+import {
+  ClockCircleOutlined,
+  DownOutlined,
+  EnvironmentOutlined,
+  GlobalOutlined,
+  PhoneOutlined,
+  SafetyCertificateOutlined,
+  StopOutlined,
+  UpOutlined,
+} from '@ant-design/icons'
 import { Link } from 'react-router-dom'
 import { PRICE_META, STATUS_META } from '../constants'
 import type { PlaceStatus, PlaceWithUser, Recommendation } from '../types'
@@ -15,9 +25,12 @@ interface Props {
   saved?: PlaceWithUser
   onSave: (status: PlaceStatus) => void
   saving?: boolean
+  /** 按「沒興趣」；沒傳就不顯示按鈕 */
+  onDismiss?: () => void
 }
 
-export default function RecommendationCard({ item, saved, onSave, saving }: Props) {
+export default function RecommendationCard({ item, saved, onSave, saving, onDismiss }: Props) {
+  const [showScore, setShowScore] = useState(false)
   const price = item.estimatedPricePerPerson
     ? `約 $${item.estimatedPricePerPerson} / 人`
     : item.priceRange
@@ -38,11 +51,36 @@ export default function RecommendationCard({ item, saved, onSave, saving }: Prop
             {price && <span>{price}</span>}
           </div>
         </div>
-        <div className="rec-card-score" aria-label={`符合度 ${item.matchScore}`}>
-          <Progress type="circle" percent={item.matchScore} size={52} strokeColor="#386E80" format={(p) => `${p}`} />
-          <span>符合度</span>
-        </div>
+        <button
+          type="button"
+          className="rec-card-score"
+          aria-label={`推薦分數 ${item.score}，${showScore ? '收合' : '展開'}分數明細`}
+          aria-expanded={showScore}
+          onClick={() => setShowScore(!showScore)}
+        >
+          <Progress type="circle" percent={item.score} size={52} strokeColor="#386E80" format={(p) => `${p}`} />
+          <span>
+            推薦分數 {showScore ? <UpOutlined /> : <DownOutlined />}
+          </span>
+        </button>
       </header>
+
+      {showScore && (
+        <ul className="rec-card-breakdown" aria-label="推薦分數明細">
+          {item.scoreBreakdown.map((b) => (
+            <li key={b.key}>
+              <span className="rec-card-breakdown-label">{b.label}</span>
+              <span className="rec-card-breakdown-track" aria-hidden>
+                <span className="rec-card-breakdown-fill" style={{ width: `${(b.points / b.max) * 100}%` }} />
+              </span>
+              <span className="rec-card-breakdown-points">
+                {b.points}/{b.max}
+              </span>
+              <span className="rec-card-breakdown-note">{b.note}</span>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="rec-card-tags">
         {item.cuisines.map((c) => (
@@ -131,9 +169,16 @@ export default function RecommendationCard({ item, saved, onSave, saving }: Prop
             ))}
           </Space>
         )}
-        <a href={googleMapsSearchUrl(item)} target="_blank" rel="noreferrer" className="rec-card-maps">
-          在 Google Maps 確認
-        </a>
+        <Space size={12}>
+          <a href={googleMapsSearchUrl(item)} target="_blank" rel="noreferrer" className="rec-card-maps">
+            在 Google Maps 確認
+          </a>
+          {onDismiss && !saved && (
+            <Button type="text" size="small" icon={<StopOutlined />} className="rec-card-dismiss" onClick={onDismiss}>
+              沒興趣
+            </Button>
+          )}
+        </Space>
       </footer>
     </article>
   )

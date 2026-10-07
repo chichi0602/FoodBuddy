@@ -56,7 +56,13 @@ public record Recommendation(
     IReadOnlyList<string> Cons,
     string? SuitableFor,
     string? PreferenceReason,
-    int MatchScore);
+    int MatchScore,
+    // Recommendation Score（0～100）與各項得分明細，見 RecommendationScorer
+    int Score,
+    IReadOnlyList<ScoreItem> ScoreBreakdown);
+
+/// <summary>推薦分數的一項：例如「距離 12/15，距離搜尋中心約 600 公尺」</summary>
+public record ScoreItem(string Key, string Label, int Points, int Max, string Note);
 
 /// <summary>前端從收藏計算的口味摘要</summary>
 public record TasteProfile(
@@ -97,7 +103,21 @@ public record RecommendRequest(
     IReadOnlyList<string>? ExcludeNames,
     GeoPoint? Origin,
     TasteProfile? Profile,
-    IReadOnlyList<SavedPlaceInput>? SavedPlaces);
+    IReadOnlyList<SavedPlaceInput>? SavedPlaces,
+    // 使用者按過「沒興趣」的 OpenStreetMap 店家 id
+    IReadOnlyList<string>? ExcludeIds = null,
+    // 為你推薦：收藏區只列還沒去過的店
+    bool OnlyUnvisitedSaved = false);
+
+/// <summary>首頁「為你推薦」：依口味在指定地區（或目前位置）推薦還沒去過的店</summary>
+public record ForYouRequest(
+    string? City,
+    string? District,
+    GeoPoint? Origin,
+    TasteProfile? Profile,
+    IReadOnlyList<SavedPlaceInput>? SavedPlaces,
+    IReadOnlyList<string>? ExcludeNames,
+    IReadOnlyList<string>? ExcludeIds);
 
 public record RecommendResponse(
     IReadOnlyList<Recommendation> Recommendations,

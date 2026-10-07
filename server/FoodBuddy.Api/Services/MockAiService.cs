@@ -115,7 +115,8 @@ public partial class MockAiService : IAiService
             return new AiAnalysis(
                 CandidateId: p.Id,
                 PlaceType: p.Amenity switch { "cafe" => "咖啡廳", "fast_food" => "速食", "ice_cream" => "冰品甜點", "bar" or "pub" => "酒吧", _ => "餐廳" },
-                Cuisines: c.Cuisines.Count > 0 && p.CuisineMatched ? [c.Cuisines[0]] : [],
+                // 示範模式不知道店的料理類型，不亂標
+                Cuisines: [],
                 PriceRange: null,
                 EstimatedPricePerPerson: null,
                 Reputation: null,

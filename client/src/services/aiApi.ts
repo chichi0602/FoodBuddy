@@ -40,9 +40,20 @@ export const aiApi = {
     conditions: SearchConditions,
     excludeNames: string[],
     origin: LatLng | undefined,
-    personal: { profile: TasteProfile | null; savedPlaces: SavedPlaceInput[] },
+    personal: { profile: TasteProfile | null; savedPlaces: SavedPlaceInput[]; excludeIds: string[] },
     signal?: AbortSignal,
   ) => post<RecommendResult>('recommend', { query, conditions, excludeNames, origin, ...personal }, signal),
+
+  /** 首頁「為你推薦」：依口味在指定地區或目前位置推薦還沒去過的店 */
+  forYou: (body: {
+    city: string | null
+    district: string | null
+    origin: LatLng | null
+    profile: TasteProfile | null
+    savedPlaces: SavedPlaceInput[]
+    excludeNames: string[]
+    excludeIds: string[]
+  }) => post<RecommendResult>('for-you', body),
 
   /** 口味分析；visits 只含店名、料理、地區、評分等，不含心得與備註 */
   tasteInsight: (body: {

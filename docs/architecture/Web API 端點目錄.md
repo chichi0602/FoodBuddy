@@ -1,8 +1,8 @@
 # Web API 端點目錄
 
 - 文件狀態：維護中
-- 對應階段：Phase 7
-- 最後核對日期：2026/10/06
+- 對應階段：Phase 8
+- 最後核對日期：2026/10/07
 
 後端 `server/FoodBuddy.Api`，開發時位址 `http://localhost:5122`。JSON 一律 camelCase。沒有登入驗證（個人使用、只在本機執行）。
 錯誤回應格式：`{ "message": "給使用者看的中文訊息" }`。
@@ -51,6 +51,8 @@
 | origin | | `{ lat, lng }`，條件沒有地點時的搜尋中心 |
 | profile | | 口味摘要：topCuisines[{name,count}]、preferredPriceRanges、highRated、dislikedCuisines、dislikedNames、topDistricts、visitCount、totalSaved |
 | savedPlaces | | 收藏清單：id、name、lat、lng、city、district、cuisines、statuses、rating、priceRange |
+| excludeIds | | 沒興趣的 OpenStreetMap id（Phase 8） |
+| onlyUnvisitedSaved | | true 時收藏區只看還沒去過的店，並列出範圍內全部（為你推薦使用） |
 
 回應：
 
@@ -64,7 +66,9 @@
     "placeType": "餐廳", "cuisines": ["台式", "牛肉湯"], "priceRange": null, "estimatedPricePerPerson": null,
     "reputation": "台南知名的傳統牛肉湯店…", "recommendedDishes": ["牛肉湯"],
     "reason": "…", "pros": ["…"], "cons": ["…"], "suitableFor": null,
-    "preferenceReason": null, "matchScore": 96
+    "preferenceReason": null, "matchScore": 96,
+    "score": 82,
+    "scoreBreakdown": [{ "key": "match", "label": "需求符合度", "points": 38, "max": 40, "note": "AI 判斷符合這次需求的程度 96/100" }, "…共六項"]
   }],
   "saved": [{ "placeId": "本機店家 id", "reason": "你之前收藏的這間…", "matchScore": 96 }],
   "mock": false,
@@ -74,7 +78,7 @@
 }
 ```
 
-- `recommendations` 只包含使用者尚未收藏的新店；`preferenceReason` 有值的放「根據你的口味推薦」，否則放「AI 網路探索」。
+- `recommendations` 只包含使用者尚未收藏的新店，依 `score` 排序（公式見 [為你推薦 PRD](../prd/為你推薦-prd.md)）；`preferenceReason` 有值的放「根據你的口味推薦」，否則放「AI 網路探索」。
 - `saved` 的 `placeId` 是前端 IndexedDB 的店家 id。
 - `area.label` 為 `目前位置` 時表示用 `origin` 搜尋。
 
@@ -83,6 +87,21 @@
 | 200 | 成功（可能 0 筆，看 `message`） |
 | 400 | 需求空白或超過 500 字、座標不正確、沒有地點也沒有 origin、地點找不到 |
 | 502 | Azure OpenAI 或 OpenStreetMap 失敗 |
+
+## POST /api/ai/for-you
+
+首頁「為你推薦」（Phase 8）：依口味推薦還沒去過的店。
+
+請求：`{ city, district, origin, profile, savedPlaces, excludeNames, excludeIds }`（city／district 或 origin 擇一）
+
+- 以 profile 中權重 ≥ 2 的前 3 名料理當條件，重用 `/recommend` 的流程（`onlyUnvisitedSaved: true`）
+- 回應格式同 `/recommend`；`saved` 為範圍內還沒去過的收藏（AI 有挑中的附 AI 評語）
+
+| 狀態碼 | 情況 |
+|------|------|
+| 200 | 成功 |
+| 400 | 沒有 profile（喜歡的店不足 3 間）、座標不正確、地點找不到 |
+| 502 | AI 或地圖服務失敗 |
 
 ## POST /api/ai/taste-insight
 

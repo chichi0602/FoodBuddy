@@ -33,6 +33,7 @@ else
 builder.Services.AddMemoryCache();
 builder.Services.Configure<OsmOptions>(builder.Configuration.GetSection(OsmOptions.SectionName));
 builder.Services.AddHttpClient<IPlaceSearchService, OsmPlaceSearchService>(c => c.Timeout = TimeSpan.FromSeconds(40));
+builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<RecommendationService>();
 
 var app = builder.Build();
