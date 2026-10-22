@@ -51,3 +51,14 @@ body {
     transition: none !important;
   }
 }
+
+/* 登入檢查、第一次下載資料時的全畫面載入 */
+.app-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--gray);
+}

@@ -15,3 +15,6 @@ server/FoodBuddy.Api/appsettings.Local.json
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# SQLite 資料庫與 Data Protection 金鑰（帳號資料）
+server/FoodBuddy.Api/App_Data/

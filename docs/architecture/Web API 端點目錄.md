@@ -1,10 +1,11 @@
 # Web API 端點目錄
 
 - 文件狀態：維護中
-- 對應階段：Phase 8
-- 最後核對日期：2026/10/07
+- 對應階段：Phase 9
+- 最後核對日期：2026/10/22
 
-後端 `server/FoodBuddy.Api`，開發時位址 `http://localhost:5122`。JSON 一律 camelCase。沒有登入驗證（個人使用、只在本機執行）。
+後端 `server/FoodBuddy.Api`，開發時位址 `http://localhost:5122`。JSON 一律 camelCase。
+**登入**：Phase 9 起以 HttpOnly Cookie（`FoodBuddy.Auth`）記住登入。除了 `/api/health`、`/api/auth/providers`、`register`、`login`、`logout`、`google`，其他端點都要登入，未登入回 401（不轉址）。
 錯誤回應格式：`{ "message": "給使用者看的中文訊息" }`。
 
 ## GET /api/health
@@ -14,6 +15,45 @@
 ```json
 { "status": "ok", "aiConfigured": true }
 ```
+
+## 帳號（/api/auth）
+
+| 端點 | 說明 | 回應 |
+|------|------|------|
+| `GET /api/auth/providers` | 可用的登入方式 | `{ "google": false }` |
+| `POST /api/auth/register` | `{ email, password, displayName? }`；成功後直接登入 | 200 使用者資訊；400 `{ message }`（Email 重複、密碼太短…） |
+| `POST /api/auth/login` | `{ email, password }` | 200 使用者資訊；401 帳密錯誤、鎖定中、Google 帳號 |
+| `POST /api/auth/logout` | 登出 | 204 |
+| `GET /api/auth/me` | 目前登入的使用者 | 200 使用者資訊；401 未登入 |
+| `DELETE /api/auth/account` | 刪除帳號與伺服器上所有資料 | 204 |
+| `GET /api/auth/google` | 導到 Google 登入（後端有設定才啟用，否則 404） | 302 |
+| `GET /api/auth/google/callback` | Google 登入完成後回來，建立或連結帳號 | 302 到 `/`；失敗到 `/login?error=google` |
+
+使用者資訊：`{ id, email, displayName, hasPassword, logins: ["Google"] }`。Google 的 OAuth 回呼路徑是 `/signin-google`（由驗證中介軟體處理）。
+
+## POST /api/sync
+
+雙向同步（Phase 9）。先寫入前端送來的變更，再回傳 `since` 之後的變更。
+
+請求：
+
+| 欄位 | 說明 |
+|------|------|
+| since | 上次同步拿到的 cursor，第一次為 0 |
+| changes | 最多 500 筆：`{ collection, id, data, deleted, updatedAt }`；collection 只能是 places、userPlaces、visits、tags、searchHistory、dismissed；updatedAt 為本機修改時間（毫秒） |
+
+回應：`{ cursor, hasMore, changes: [...] }`
+
+- changes 的格式同請求，一次最多 300 筆。hasMore 為 true 時用新的 cursor 再呼叫一次。
+- 這次剛寫入的資料不會傳回。
+- updatedAt 比伺服器舊的修改不寫入，伺服器版本會傳回給送出的裝置。
+
+| 狀態碼 | 情況 |
+|------|------|
+| 200 | 成功 |
+| 400 | collection 不允許、資料格式錯誤、單筆超過 4MB、帳號超過 20000 筆 |
+| 401 | 未登入，或帳號已被刪除 |
+| 413 | 請求超過 20MB |
 
 ## POST /api/ai/parse
 

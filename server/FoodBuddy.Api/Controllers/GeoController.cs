@@ -1,5 +1,6 @@
 using FoodBuddy.Api.Models;
 using FoodBuddy.Api.Services.Places;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FoodBuddy.Api.Controllers;
@@ -7,6 +8,7 @@ namespace FoodBuddy.Api.Controllers;
 public record GeocodeRequest(string Name, string? Address, string? City, string? District, string? Country);
 
 [ApiController]
+[Authorize]
 [Route("api/geo")]
 public class GeoController(IPlaceSearchService places) : ControllerBase
 {

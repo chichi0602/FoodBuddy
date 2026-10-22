@@ -1,12 +1,14 @@
 using FoodBuddy.Api.Models;
 using FoodBuddy.Api.Services;
 using FoodBuddy.Api.Services.Places;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace FoodBuddy.Api.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/ai")]
 public class AiController(IAiService ai, RecommendationService recommender, IMemoryCache cache) : ControllerBase
 {

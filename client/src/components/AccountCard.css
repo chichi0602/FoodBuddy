@@ -1,0 +1,26 @@
+.account-name {
+  font-size: 18px;
+  color: var(--teal-deep);
+}
+
+.account-email,
+.account-meta {
+  color: var(--gray);
+  margin-top: 2px;
+}
+
+.account-sync {
+  margin-top: 10px;
+  color: var(--teal);
+}
+
+.account-sync--error {
+  color: #c0504d;
+}
+
+.account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}

@@ -6,6 +6,7 @@ import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router-dom'
 import { tagRepository } from '../db/tagRepository'
 import { dismissedRepository } from '../db/dismissedRepository'
+import AccountCard from '../components/AccountCard'
 import './SettingsPage.css'
 
 export default function SettingsPage() {
@@ -28,7 +29,9 @@ export default function SettingsPage() {
   return (
     <div className="settings">
       <h1 className="page-title">設定</h1>
-      <p className="page-subtitle">管理你的 Tag 與不想再看到的推薦。</p>
+      <p className="page-subtitle">管理帳號、Tag 與不想再看到的推薦。</p>
+
+      <AccountCard />
 
       <Card title="Tag 管理" className="settings-card">
         {!tags ? (
