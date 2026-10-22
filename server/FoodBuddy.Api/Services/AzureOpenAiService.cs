@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -20,6 +22,27 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
 
     readonly AzureOpenAIOptions _opt = options.Value;
 
+    /// <summary>
+    /// 各部署實際可用的 reasoning_effort：key 為「部署|想要的值」，value 為實際送出的值（null 表示不送）。
+    /// 不同模型支援的值不同：gpt-5 有 minimal、gpt-5.1 之後改成 none、非推理模型（gpt-4.1）完全不接受。
+    /// 記住後就不必每次失敗重試。
+    /// </summary>
+    static readonly ConcurrentDictionary<string, string?> EffortFor = new();
+
+    /// <summary>想要的值不被接受時，依序改試的值（越前面越接近原意）</summary>
+    static readonly Dictionary<string, string[]> EffortFallbacks = new()
+    {
+        ["minimal"] = ["none", "low"],
+        ["none"] = ["minimal", "low"],
+        ["low"] = ["minimal", "none"],
+    };
+
+    /// <summary>不接受 max_completion_tokens、要改用 max_tokens 的部署</summary>
+    static readonly ConcurrentDictionary<string, bool> UsesMaxTokens = new();
+
+    /// <summary>一次 AI 呼叫的耗時與 token 用量（比較模型用）</summary>
+    public record CallStats(string Deployment, double Seconds, int PromptTokens, int CompletionTokens, int ReasoningTokens);
+
     public bool IsMock => false;
 
     const string ParsePrompt = """
@@ -41,7 +64,7 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
           在 preferenceReason 寫出具體依據；只是剛好符合需求、和口味無關的就填 null，不要硬套。
         - 避開使用者標記不推薦的料理類型與店家。
         - 「料理」欄是地圖標籤，可能缺漏，請同時依店名判斷。認識的店可以寫評價與推薦餐點，不認識就填 null 或空陣列，不可捏造；價格不確定填 null。
-        - reason 要具體對應使用者條件（料理、距離、時段、預算、人數、關鍵字）；pros、cons 各 1～3 點，簡短。
+        - reason 要具體對應使用者條件（料理、距離、時段、預算、人數、關鍵字），60 字內；pros、cons 各最多 2 點、每點 15 字內；reputation 40 字內。
         - 符合的店不足時寧可少給；matchScore 反映符合程度。
         - 給使用者看的文字不要提到「OSM」「標籤」「候選清單」「id」等系統用語，距離用「約 1.4 公里」「步行約 5 分鐘」這類說法。
         - 全部使用繁體中文。
@@ -58,18 +81,33 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
 
     public async Task<TasteInsight> AnalyzeTasteAsync(TasteInsightRequest request, CancellationToken ct)
     {
-        var json = await CompleteAsync(
-            TastePrompt, JsonSerializer.Serialize(request, Json), "taste_insight", AiSchemas.TasteInsight(), "low", 4000, ct);
+        var (json, _) = await CompleteAsync(
+            _opt.InsightModel, TastePrompt, JsonSerializer.Serialize(request, Json), "taste_insight", AiSchemas.TasteInsight(), "low", 4000, ct);
         return Deserialize<TasteInsight>(json);
     }
 
-    public async Task<SearchConditions> ParseAsync(string query, CancellationToken ct)
+    public async Task<SearchConditions> ParseAsync(string query, CancellationToken ct) =>
+        (await ParseWithAsync(_opt.ParseModel, query, ct)).Result;
+
+    /// <summary>用指定部署解析（比較模型用）</summary>
+    public async Task<(SearchConditions Result, CallStats Stats)> ParseWithAsync(string deployment, string query, CancellationToken ct)
     {
-        var json = await CompleteAsync(ParsePrompt, query, "search_conditions", AiSchemas.Conditions(), "minimal", 2000, ct);
-        return Deserialize<SearchConditions>(json);
+        var (json, stats) = await CompleteAsync(deployment, ParsePrompt, query, "search_conditions", AiSchemas.Conditions(), "minimal", 2000, ct);
+        return (Deserialize<SearchConditions>(json), stats);
     }
 
     public async Task<IReadOnlyList<AiAnalysis>> RankAsync(
+        string query,
+        SearchConditions conditions,
+        IReadOnlyList<PlaceCandidate> candidates,
+        IReadOnlyList<SavedCandidate> saved,
+        TasteProfile? profile,
+        CancellationToken ct) =>
+        (await RankWithAsync(_opt.RankModel, query, conditions, candidates, saved, profile, ct)).Result;
+
+    /// <summary>用指定部署挑店（比較模型用）</summary>
+    public async Task<(IReadOnlyList<AiAnalysis> Result, CallStats Stats)> RankWithAsync(
+        string deployment,
         string query,
         SearchConditions conditions,
         IReadOnlyList<PlaceCandidate> candidates,
@@ -100,18 +138,22 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
             {(candidates.Count == 0 ? "（無）" : string.Join("\n", mapLines))}
             """;
         var ids = candidates.Select(c => c.Id).Concat(saved.Select(s => s.Id));
-        var json = await CompleteAsync(RankPrompt, user, "recommendations", AiSchemas.Analyses(ids), "low", 10000, ct);
-        return Deserialize<AnalysisList>(json).Recommendations;
+        // minimal 推理＋精簡輸出：挑店是整個搜尋最慢的一步
+        var (json, stats) = await CompleteAsync(
+            deployment, RankPrompt, user, "recommendations", AiSchemas.Analyses(ids), "minimal", 4000, ct);
+        return (Deserialize<AnalysisList>(json).Recommendations, stats);
     }
 
     record AnalysisList(IReadOnlyList<AiAnalysis> Recommendations);
 
-    async Task<string> CompleteAsync(
-        string system, string user, string schemaName, JsonObject schema, string reasoningEffort, int maxTokens, CancellationToken ct)
+    async Task<(string Content, CallStats Stats)> CompleteAsync(
+        string deployment, string system, string user, string schemaName, JsonObject schema,
+        string reasoningEffort, int maxTokens, CancellationToken ct)
     {
+        var watch = Stopwatch.StartNew();
         var body = new JsonObject
         {
-            ["model"] = _opt.Deployment,
+            ["model"] = deployment,
             ["messages"] = new JsonArray(
                 new JsonObject { ["role"] = "system", ["content"] = system },
                 new JsonObject { ["role"] = "user", ["content"] = user }),
@@ -120,18 +162,38 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
                 ["type"] = "json_schema",
                 ["json_schema"] = new JsonObject { ["name"] = schemaName, ["strict"] = true, ["schema"] = schema },
             },
-            ["max_completion_tokens"] = maxTokens,
-            ["reasoning_effort"] = reasoningEffort,
         };
+        if (UsesMaxTokens.ContainsKey(deployment)) body["max_tokens"] = maxTokens;
+        else body["max_completion_tokens"] = maxTokens;
+        var effortKey = $"{deployment}|{reasoningEffort}";
+        var effort = EffortFor.TryGetValue(effortKey, out var known) ? known : reasoningEffort;
+        if (effort is not null) body["reasoning_effort"] = effort;
+        var fallbacks = new Queue<string>(EffortFallbacks.GetValueOrDefault(reasoningEffort, []));
 
-        var (status, text) = await SendAsync(body, ct);
+        var (status, text) = await SendAsync(deployment, body, ct);
 
-        // 不同 gpt-5 版本支援的 reasoning_effort 值不同（例如 minimal），不支援時改用模型預設值重試一次
-        if (status == HttpStatusCode.BadRequest && text.Contains("reasoning_effort", StringComparison.OrdinalIgnoreCase))
+        // 不同模型支援的參數不同，遇到就換參數重試，並記住這個部署，之後直接用對的參數：
+        // reasoning_effort 依序改試相近的值，都不行才不送；部分舊模型只認 max_tokens
+        for (var retry = 0; retry < 4 && status == HttpStatusCode.BadRequest; retry++)
         {
-            logger.LogWarning("Deployment does not accept reasoning_effort={Effort}; retrying with model default", reasoningEffort);
-            body.Remove("reasoning_effort");
-            (status, text) = await SendAsync(body, ct);
+            if (body.ContainsKey("reasoning_effort") && text.Contains("reasoning_effort", StringComparison.OrdinalIgnoreCase))
+            {
+                var next = fallbacks.Count > 0 ? fallbacks.Dequeue() : null;
+                logger.LogWarning("Deployment {Deployment} does not accept reasoning_effort={Effort}; retrying with {Next}",
+                    deployment, body["reasoning_effort"]?.GetValue<string>(), next ?? "(none sent)");
+                if (next is null) body.Remove("reasoning_effort");
+                else body["reasoning_effort"] = next;
+                EffortFor[effortKey] = next;
+            }
+            else if (body.ContainsKey("max_completion_tokens") && text.Contains("max_completion_tokens", StringComparison.OrdinalIgnoreCase))
+            {
+                logger.LogWarning("Deployment {Deployment} does not accept max_completion_tokens; retrying with max_tokens", deployment);
+                UsesMaxTokens[deployment] = true;
+                body.Remove("max_completion_tokens");
+                body["max_tokens"] = maxTokens;
+            }
+            else break;
+            (status, text) = await SendAsync(deployment, body, ct);
         }
 
         if (status != HttpStatusCode.OK)
@@ -156,12 +218,21 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
             logger.LogError("Empty AI content. finish_reason={Reason}, refusal={Refusal}", reason, refusal);
             throw new AiServiceException(reason == "length" ? "AI 回應過長被截斷，請把需求描述得更精簡再試一次。" : "AI 沒有回傳結果，請換個說法再試一次。");
         }
-        return content;
+        var usage = root?["usage"];
+        var stats = new CallStats(
+            deployment,
+            Math.Round(watch.Elapsed.TotalSeconds, 2),
+            usage?["prompt_tokens"]?.GetValue<int>() ?? 0,
+            usage?["completion_tokens"]?.GetValue<int>() ?? 0,
+            usage?["completion_tokens_details"]?["reasoning_tokens"]?.GetValue<int>() ?? 0);
+        logger.LogInformation("AI {Schema} on {Deployment}: {Seconds}s, tokens in {In} / out {Out} (reasoning {Reasoning})",
+            schemaName, deployment, stats.Seconds, stats.PromptTokens, stats.CompletionTokens, stats.ReasoningTokens);
+        return (content, stats);
     }
 
-    async Task<(HttpStatusCode Status, string Body)> SendAsync(JsonObject body, CancellationToken ct)
+    async Task<(HttpStatusCode Status, string Body)> SendAsync(string deployment, JsonObject body, CancellationToken ct)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl())
+        using var request = new HttpRequestMessage(HttpMethod.Post, BuildUrl(deployment))
         {
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
         };
@@ -182,12 +253,12 @@ public class AzureOpenAiService(HttpClient http, IOptions<AzureOpenAIOptions> op
         }
     }
 
-    string BuildUrl()
+    string BuildUrl(string deployment)
     {
         var endpoint = _opt.Endpoint.TrimEnd('/');
         return string.IsNullOrWhiteSpace(_opt.ApiVersion) || _opt.ApiVersion == "v1"
             ? $"{endpoint}/openai/v1/chat/completions"
-            : $"{endpoint}/openai/deployments/{Uri.EscapeDataString(_opt.Deployment)}/chat/completions?api-version={Uri.EscapeDataString(_opt.ApiVersion)}";
+            : $"{endpoint}/openai/deployments/{Uri.EscapeDataString(deployment)}/chat/completions?api-version={Uri.EscapeDataString(_opt.ApiVersion)}";
     }
 
     T Deserialize<T>(string json)

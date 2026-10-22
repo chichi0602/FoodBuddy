@@ -1,4 +1,8 @@
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using FoodBuddy.Api.Models;
+using Microsoft.Extensions.Caching.Memory;
 using FoodBuddy.Api.Services.Places;
 
 namespace FoodBuddy.Api.Services;
@@ -8,7 +12,7 @@ namespace FoodBuddy.Api.Services;
 /// AI 只能以 id 指定候選店家，不在清單中的結果一律丟棄，確保不會出現虛構的店。
 /// </summary>
 public class RecommendationService(
-    IPlaceSearchService places, IAiService ai, TimeProvider clock, ILogger<RecommendationService> logger)
+    IPlaceSearchService places, IAiService ai, TimeProvider clock, IMemoryCache cache, ILogger<RecommendationService> logger)
 {
     public const string OriginLabel = "目前位置";
     const int OriginRadiusMeters = 1500;
@@ -16,7 +20,24 @@ public class RecommendationService(
     const int MaxSavedCandidates = 20;
     const double SavedRadiusFactor = 1.2;
 
+    /// <summary>同樣的需求、條件、地點、口味、收藏與排除清單在這段時間內直接回傳上次結果</summary>
+    static readonly TimeSpan ResultCacheTime = TimeSpan.FromMinutes(10);
+
     public async Task<RecommendResponse> RecommendAsync(RecommendRequest request, CancellationToken ct)
+    {
+        // 「換一批」或改了收藏時請求內容不同，不會命中快取
+        var key = "recommend:" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request))));
+        if (cache.TryGetValue(key, out RecommendResponse? hit) && hit is not null)
+        {
+            logger.LogInformation("Recommendation cache hit");
+            return hit;
+        }
+        var response = await RecommendUncachedAsync(request, ct);
+        cache.Set(key, response, ResultCacheTime);
+        return response;
+    }
+
+    async Task<RecommendResponse> RecommendUncachedAsync(RecommendRequest request, CancellationToken ct)
     {
         var c = request.Conditions;
         var hasPlace = !string.IsNullOrWhiteSpace(c.City) || !string.IsNullOrWhiteSpace(c.District) || !string.IsNullOrWhiteSpace(c.Landmark);

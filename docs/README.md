@@ -12,7 +12,7 @@
 | 目錄 | 收納特性 | 範例 |
 |------|----------|------|
 | [`planning/`](planning/README.md) | 需求、規劃、路線圖 | 需求 Agenda、開發路線圖 |
-| [`changelog/`](changelog/README.md) | 每個開發步驟的紀錄：怎麼做的、做了哪些決定、踩到什麼、怎麼驗證 | Phase 1～5 各一篇 |
+| [`changelog/`](changelog/README.md) | 每個開發步驟的紀錄：怎麼做的、做了哪些決定、踩到什麼、怎麼驗證 | 每個 Phase 與小修正各一篇 |
 | [`prd/`](prd/README.md) | 產品能力的**現況**說明（以程式碼為準） | 我的美食、篩選、AI 找美食 |
 | [`architecture/`](architecture/README.md) | 系統架構、資料模型、API、設計系統 | 架構總覽、Web API 端點目錄 |
 | [`operations/`](operations/README.md) | 啟動、設定檔、金鑰 | 啟動與停止系統、金鑰與設定檔 |
@@ -27,6 +27,7 @@
 - [開發路線圖](planning/開發路線圖.md)（Phase 0～8 進度與對應紀錄）
 
 ### changelog — 開發紀錄
+- [AI 找美食加速](changelog/2026-10-07-AI搜尋加速.md)
 - [Phase 8：AI 個人化推薦](changelog/2026-10-07-Phase8-AI個人化推薦.md)
 - [Phase 7：到訪、評分與個人偏好](changelog/2026-10-06-Phase7-到訪與口味統計.md)
 - [Phase 6：地圖呈現](changelog/2026-10-06-Phase6-地圖呈現.md)

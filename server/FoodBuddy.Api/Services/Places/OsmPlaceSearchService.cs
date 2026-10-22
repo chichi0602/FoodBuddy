@@ -15,7 +15,8 @@ public partial class OsmPlaceSearchService(
     HttpClient http, IMemoryCache cache, IOptions<OsmOptions> options, ILogger<OsmPlaceSearchService> logger)
     : IPlaceSearchService
 {
-    const int MaxCandidates = 40;
+    // 送給 AI 的候選數；越少 AI 越快，料理相符的店本來就排在前面
+    const int MaxCandidates = 25;
     const string Amenities = "restaurant|cafe|fast_food|food_court|ice_cream|bar|pub";
 
     static readonly SemaphoreSlim NominatimGate = new(1, 1);
@@ -189,7 +190,8 @@ public partial class OsmPlaceSearchService(
 
         var json = await QueryOverpassAsync(ql, ct);
         var places = ParseElements(json, area);
-        cache.Set(key, places, TimeSpan.FromMinutes(30));
+        // 餐廳資料不常變，快取一天；同地區再搜尋時省下 4～11 秒
+        cache.Set(key, places, TimeSpan.FromHours(24));
         return places;
     }
 

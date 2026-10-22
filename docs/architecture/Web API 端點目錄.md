@@ -17,7 +17,7 @@
 
 ## POST /api/ai/parse
 
-把自然語言需求解析成條件。
+把自然語言需求解析成條件。同一句需求 1 小時內直接回傳快取結果。
 
 請求：`{ "query": "幫我找高雄左營附近，適合三個人晚餐，每人 500 元左右的日式料理。" }`
 
@@ -40,6 +40,7 @@
 ## POST /api/ai/recommend
 
 從 OpenStreetMap 取得範圍內真實店家與範圍內的收藏，交給 AI 挑選分析。
+同一個請求（內容完全相同）10 分鐘內直接回傳快取結果；「換一批」帶入不同的 excludeNames，不會命中。
 
 請求：
 
@@ -146,5 +147,21 @@
 | 400 | name 與 address 都沒有 |
 | 404 | 找不到，或只找到行政區等粗略位置 |
 | 502 | 地點查詢服務失敗 |
+
+## POST /api/dev/benchmark
+
+開發用：比較多個 Azure OpenAI 部署的速度與結果（AI 找美食加速）。**只在 Development 環境可用**。
+
+- 比較的部署：`Deployment` 加上設定 `AzureOpenAI:BenchmarkDeployments`（見 [金鑰與設定檔](../operations/金鑰與設定檔.md)）
+- 固定 3 句需求；每個部署跑 1 次解析、2 次挑店，用同一份地圖候選店家
+- 請求：無 body
+
+回應：每個部署一筆 `{ deployment, avgParseSeconds, avgRankSeconds, parse: [...], rank: [...] }`；rank 每筆含 avgSeconds、token 數、picks、names、firstReason、error。不含金鑰。
+
+| 狀態碼 | 情況 |
+|------|------|
+| 200 | 成功（個別部署失敗會寫在該筆的 error） |
+| 400 | 示範模式，沒有可比較的部署 |
+| 404 | 非 Development 環境 |
 
 > 返回 [architecture 索引](README.md)

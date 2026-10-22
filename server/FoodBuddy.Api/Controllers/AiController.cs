@@ -2,12 +2,13 @@ using FoodBuddy.Api.Models;
 using FoodBuddy.Api.Services;
 using FoodBuddy.Api.Services.Places;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace FoodBuddy.Api.Controllers;
 
 [ApiController]
 [Route("api/ai")]
-public class AiController(IAiService ai, RecommendationService recommender) : ControllerBase
+public class AiController(IAiService ai, RecommendationService recommender, IMemoryCache cache) : ControllerBase
 {
     const int MaxQueryLength = 500;
     const int MaxExcludeNames = 100;
@@ -19,8 +20,14 @@ public class AiController(IAiService ai, RecommendationService recommender) : Co
         if (Validate(request.Query) is { } error) return error;
         try
         {
-            var conditions = await ai.ParseAsync(request.Query.Trim(), ct);
-            return new ParseResponse(conditions, ai.IsMock);
+            // 同一句需求 1 小時內直接回傳上次的解析結果
+            var query = request.Query.Trim();
+            var conditions = await cache.GetOrCreateAsync($"parse:{ai.IsMock}:{query}", entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                return ai.ParseAsync(query, ct);
+            });
+            return new ParseResponse(conditions!, ai.IsMock);
         }
         catch (AiServiceException ex)
         {
